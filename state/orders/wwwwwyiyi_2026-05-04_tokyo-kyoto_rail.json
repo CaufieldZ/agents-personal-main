@@ -1,0 +1,52 @@
+{
+  "xianyu_order_id": "wwwwwyiyi_2026-05-04_tokyo-kyoto_rail",
+  "xianyu_chat_id": "",
+  "buyer": {
+    "nick": "wwwww壹壹",
+    "xianyu_uid": ""
+  },
+  "item": {
+    "type": "rail",
+    "summary": "新干线代订",
+    "xianyu_item_id": ""
+  },
+  "trip": {
+    "origin": "",
+    "origin_code": "",
+    "destination": "",
+    "destination_code": "",
+    "is_round_trip": false,
+    "departure_date": "2026-05-04",
+    "return_date": "",
+    "departure_time": "上午10点左右",
+    "passenger_count": 1,
+    "ticket_count": 1,
+    "route": "东京站 → 京都站",
+    "airline": ""
+  },
+  "travelers": [],
+  "pricing": {
+    "ctrip_price": 617.0,
+    "quoted_price": 450,
+    "currency": "CNY",
+    "source": "Klook"
+  },
+  "status": "已报价",
+  "timeline": [
+    {
+      "status": "待发单",
+      "at": "2026-04-26T19:41:58+08:00"
+    },
+    {
+      "status": "已报价",
+      "at": "2026-04-26T22:40:23+08:00",
+      "note": "报价 450 元（携程 617 × 75%）"
+    }
+  ],
+  "fulfillment": {
+    "supplier_pnr": "",
+    "supplier_attachments": [],
+    "buyer_receipt_sent_at": null
+  },
+  "notes": []
+}

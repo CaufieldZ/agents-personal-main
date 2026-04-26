@@ -1,0 +1,64 @@
+{
+  "xianyu_order_id": "tuxing_tokyo-nagano",
+  "xianyu_chat_id": "60811629304",
+  "buyer": {
+    "nick": "土星务实的奶酪",
+    "xianyu_uid": ""
+  },
+  "item": {
+    "type": "rail",
+    "summary": "新干线代订",
+    "xianyu_item_id": "964544425769"
+  },
+  "trip": {
+    "origin": "东京",
+    "origin_code": "TYO",
+    "destination": "长野",
+    "destination_code": "NGN",
+    "is_round_trip": false,
+    "departure_date": "2026-04-29",
+    "return_date": "",
+    "departure_time": "",
+    "passenger_count": 1,
+    "ticket_count": 1,
+    "route": "东京 → 长野",
+    "airline": ""
+  },
+  "travelers": [],
+  "pricing": {
+    "ctrip_price": 381.46,
+    "quoted_price": 280,
+    "currency": "CNY",
+    "source": "Klook",
+    "jpy_jr_price": 8340.0,
+    "markup": 1.05
+  },
+  "status": "已报价",
+  "timeline": [
+    {
+      "status": "询价",
+      "at": "2026-04-26T23:20:00+08:00"
+    },
+    {
+      "status": "已报价",
+      "at": "2026-04-26T23:52:14+08:00",
+      "note": "报价 300 元（携程 429 × 75%）"
+    },
+    {
+      "status": "已报价",
+      "at": "2026-04-26T23:56:28+08:00",
+      "note": "报价 250 元（JR 8340 JPY × markup 1.05 × 0.043561（中间价 0.042917 ×1.015）= Klook 客户参考价 ¥381）"
+    },
+    {
+      "status": "已报价",
+      "at": "2026-04-26T23:57:15+08:00",
+      "note": "确认出发日期 2026-04-29，调整报价至 280 元，已回复买家"
+    }
+  ],
+  "fulfillment": {
+    "supplier_pnr": "",
+    "supplier_attachments": [],
+    "buyer_receipt_sent_at": null
+  },
+  "notes": []
+}

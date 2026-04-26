@@ -1,0 +1,62 @@
+{
+  "xianyu_order_id": "huajiao12_2026-05-04_tyo-mmy",
+  "xianyu_chat_id": "61102880885",
+  "buyer": {
+    "nick": "涯石街活跃的花椒12",
+    "xianyu_uid": "289967389"
+  },
+  "item": {
+    "type": "flight",
+    "summary": "东京-宫古岛 单程 1成人+1儿童",
+    "xianyu_item_id": "980042164084"
+  },
+  "trip": {
+    "origin": "东京",
+    "origin_code": "HND",
+    "destination": "宫古岛",
+    "destination_code": "MMY",
+    "is_round_trip": false,
+    "departure_date": "2026-05-04",
+    "return_date": "",
+    "departure_time": "",
+    "passenger_count": 2,
+    "ticket_count": 2,
+    "airline": ""
+  },
+  "travelers": [],
+  "pricing": {
+    "ctrip_price": 7170.0,
+    "quoted_price": 5350,
+    "currency": "CNY",
+    "source": "携程"
+  },
+  "status": "已报价",
+  "timeline": [
+    {
+      "status": "询价",
+      "at": "2026-04-26T23:38:00+08:00",
+      "note": "买家发携程截图：1成人+1儿童 人均 ¥3585（总价 ¥7170），ANA NH1079 早班"
+    },
+    {
+      "status": "已报价",
+      "at": "2026-04-26T22:44:15+08:00",
+      "note": "报价 5350 元（携程 7170 × 75%）"
+    },
+    {
+      "status": "已付款",
+      "at": "2026-04-26T22:50:50+08:00",
+      "note": "测试推进"
+    },
+    {
+      "status": "已报价",
+      "at": "2026-04-26T22:52:13+08:00",
+      "note": "回滚测试"
+    }
+  ],
+  "fulfillment": {
+    "supplier_pnr": "",
+    "supplier_attachments": [],
+    "buyer_receipt_sent_at": null
+  },
+  "notes": []
+}

@@ -1,1 +1,7 @@
 *.DS_Store
+.venv/
+.env
+config/xianyu_cookies.txt
+logs/
+__pycache__/
+tasks/

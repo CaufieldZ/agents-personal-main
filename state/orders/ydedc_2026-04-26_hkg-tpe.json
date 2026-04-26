@@ -1,0 +1,61 @@
+{
+  "xianyu_order_id": "ydedc_2026-04-26_hkg-tpe",
+  "xianyu_chat_id": "",
+  "buyer": {
+    "nick": "ydedc",
+    "xianyu_uid": ""
+  },
+  "item": {
+    "type": "flight",
+    "summary": "机票代订",
+    "xianyu_item_id": ""
+  },
+  "trip": {
+    "origin": "香港",
+    "origin_code": "HKG",
+    "destination": "台北桃园",
+    "destination_code": "TPE",
+    "is_round_trip": true,
+    "departure_date": "2026-04-26",
+    "return_date": "2026-04-30",
+    "departure_time": "",
+    "passenger_count": 1,
+    "ticket_count": 1,
+    "route": "香港 ⇄ 台北",
+    "airline": "中华航空"
+  },
+  "travelers": [
+    {
+      "name_cn": "赵良骏超",
+      "name_en": "ZHAO LIANGJUNCHAO",
+      "gender": "男",
+      "passport": "EJ6612945",
+      "passport_expiry": "2032-11",
+      "dob": "2002-09-11",
+      "nationality": "中国",
+      "baggage": ""
+    }
+  ],
+  "pricing": {
+    "ctrip_price": 2012,
+    "quoted_price": 1200,
+    "currency": "CNY",
+    "source": "携程"
+  },
+  "status": "已预订，待买家确认收货",
+  "timeline": [
+    {
+      "status": "已预订，待买家确认收货",
+      "at": "2026-04-26T00:00:00+08:00"
+    }
+  ],
+  "fulfillment": {
+    "supplier_pnr": "FGC4XU",
+    "supplier_attachments": [],
+    "buyer_receipt_sent_at": null
+  },
+  "notes": [
+    "客户询问线上值机，已告知需要去机场值机",
+    "客户表示已飞首程，回程拿到登机牌后确认收货"
+  ]
+}

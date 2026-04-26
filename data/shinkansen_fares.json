@@ -1,0 +1,381 @@
+{
+  "updated_at": "2026-04-26",
+  "note": "运賃 = 乗車券 + 特急券，成人价，通常期正規料金。reserved = Nozomi/はやぶさ/かがやき 指定席（最贵快车）。每年 4 月运行此脚本更新。",
+  "routes": [
+    {
+      "from": "东京",
+      "from_jr": "Tokyo",
+      "to": "名古屋",
+      "to_jr": "Nagoya",
+      "line": "东海道新干线",
+      "fare": {
+        "free": 10560,
+        "reserved": 11300,
+        "green": 14960,
+        "granclass": null
+      },
+      "child_ratio": 0.5,
+      "duration_min": 100
+    },
+    {
+      "from": "东京",
+      "from_jr": "Tokyo",
+      "to": "京都",
+      "to_jr": "Kyoto",
+      "line": "东海道新干线",
+      "fare": {
+        "free": 13320,
+        "reserved": 14170,
+        "green": 19040,
+        "granclass": null
+      },
+      "child_ratio": 0.5,
+      "duration_min": 135
+    },
+    {
+      "from": "东京",
+      "from_jr": "Tokyo",
+      "to": "新大阪",
+      "to_jr": "Shin-Osaka",
+      "line": "东海道新干线",
+      "fare": {
+        "free": 13870,
+        "reserved": 14720,
+        "green": 19590,
+        "granclass": null
+      },
+      "child_ratio": 0.5,
+      "duration_min": 152
+    },
+    {
+      "from": "东京",
+      "from_jr": "Tokyo",
+      "to": "广岛",
+      "to_jr": "Hiroshima",
+      "line": "东海道·山阳新干线",
+      "fare": {
+        "free": 18380,
+        "reserved": 19760,
+        "green": 27020,
+        "granclass": null
+      },
+      "child_ratio": 0.5,
+      "duration_min": 245
+    },
+    {
+      "from": "东京",
+      "from_jr": "Tokyo",
+      "to": "博多",
+      "to_jr": "Hakata",
+      "line": "东海道·山阳新干线",
+      "fare": {
+        "free": 22220,
+        "reserved": 23810,
+        "green": 31070,
+        "granclass": null
+      },
+      "child_ratio": 0.5,
+      "duration_min": 305
+    },
+    {
+      "from": "名古屋",
+      "from_jr": "Nagoya",
+      "to": "京都",
+      "to_jr": "Kyoto",
+      "line": "东海道新干线",
+      "fare": {
+        "free": 5170,
+        "reserved": 5910,
+        "green": 8180,
+        "granclass": null
+      },
+      "child_ratio": 0.5,
+      "duration_min": 35
+    },
+    {
+      "from": "名古屋",
+      "from_jr": "Nagoya",
+      "to": "新大阪",
+      "to_jr": "Shin-Osaka",
+      "line": "东海道新干线",
+      "fare": {
+        "free": 5940,
+        "reserved": 6680,
+        "green": 8950,
+        "granclass": null
+      },
+      "child_ratio": 0.5,
+      "duration_min": 50
+    },
+    {
+      "from": "京都",
+      "from_jr": "Kyoto",
+      "to": "新大阪",
+      "to_jr": "Shin-Osaka",
+      "line": "东海道新干线",
+      "fare": {
+        "free": 1450,
+        "reserved": 3080,
+        "green": 3850,
+        "granclass": null
+      },
+      "child_ratio": 0.5,
+      "duration_min": 15
+    },
+    {
+      "from": "新大阪",
+      "from_jr": "Shin-Osaka",
+      "to": "冈山",
+      "to_jr": "Okayama",
+      "line": "山阳新干线",
+      "fare": {
+        "free": 5610,
+        "reserved": 6460,
+        "green": 8730,
+        "granclass": null
+      },
+      "child_ratio": 0.5,
+      "duration_min": 45
+    },
+    {
+      "from": "新大阪",
+      "from_jr": "Shin-Osaka",
+      "to": "广岛",
+      "to_jr": "Hiroshima",
+      "line": "山阳新干线",
+      "fare": {
+        "free": 9890,
+        "reserved": 10950,
+        "green": 14610,
+        "granclass": null
+      },
+      "child_ratio": 0.5,
+      "duration_min": 75
+    },
+    {
+      "from": "新大阪",
+      "from_jr": "Shin-Osaka",
+      "to": "博多",
+      "to_jr": "Hakata",
+      "line": "山阳新干线",
+      "fare": {
+        "free": 14750,
+        "reserved": 16020,
+        "green": 20890,
+        "granclass": null
+      },
+      "child_ratio": 0.5,
+      "duration_min": 135
+    },
+    {
+      "from": "冈山",
+      "from_jr": "Okayama",
+      "to": "广岛",
+      "to_jr": "Hiroshima",
+      "line": "山阳新干线",
+      "fare": {
+        "free": 5610,
+        "reserved": 6460,
+        "green": 8730,
+        "granclass": null
+      },
+      "child_ratio": 0.5,
+      "duration_min": 34
+    },
+    {
+      "from": "广岛",
+      "from_jr": "Hiroshima",
+      "to": "博多",
+      "to_jr": "Hakata",
+      "line": "山阳新干线",
+      "fare": {
+        "free": 8570,
+        "reserved": 9630,
+        "green": 11900,
+        "granclass": null
+      },
+      "child_ratio": 0.5,
+      "duration_min": 70
+    },
+    {
+      "from": "博多",
+      "from_jr": "Hakata",
+      "to": "熊本",
+      "to_jr": "Kumamoto",
+      "line": "九州新干线",
+      "fare": {
+        "free": 4700,
+        "reserved": 5230,
+        "green": null,
+        "granclass": null
+      },
+      "child_ratio": 0.5,
+      "duration_min": 33
+    },
+    {
+      "from": "博多",
+      "from_jr": "Hakata",
+      "to": "鹿儿岛中央",
+      "to_jr": "Kagoshima-Chuo",
+      "line": "九州新干线",
+      "fare": {
+        "free": 10110,
+        "reserved": 10640,
+        "green": null,
+        "granclass": null
+      },
+      "child_ratio": 0.5,
+      "duration_min": 80
+    },
+    {
+      "from": "熊本",
+      "from_jr": "Kumamoto",
+      "to": "鹿儿岛中央",
+      "to_jr": "Kagoshima-Chuo",
+      "line": "九州新干线",
+      "fare": {
+        "free": 7440,
+        "reserved": 7970,
+        "green": null,
+        "granclass": null
+      },
+      "child_ratio": 0.5,
+      "duration_min": 48
+    },
+    {
+      "from": "东京",
+      "from_jr": "Tokyo",
+      "to": "仙台",
+      "to_jr": "Sendai",
+      "line": "东北新干线",
+      "fare": {
+        "free": 10560,
+        "reserved": 11410,
+        "green": 15070,
+        "granclass": 22600
+      },
+      "child_ratio": 0.5,
+      "duration_min": 91
+    },
+    {
+      "from": "东京",
+      "from_jr": "Tokyo",
+      "to": "盛冈",
+      "to_jr": "Morioka",
+      "line": "东北新干线",
+      "fare": {
+        "free": 13960,
+        "reserved": 15010,
+        "green": 19880,
+        "granclass": 27410
+      },
+      "child_ratio": 0.5,
+      "duration_min": 120
+    },
+    {
+      "from": "东京",
+      "from_jr": "Tokyo",
+      "to": "新青森",
+      "to_jr": "Shin-Aomori",
+      "line": "东北新干线",
+      "fare": {
+        "free": null,
+        "reserved": 17670,
+        "green": 23740,
+        "granclass": 31270
+      },
+      "child_ratio": 0.5,
+      "duration_min": 180
+    },
+    {
+      "from": "东京",
+      "from_jr": "Tokyo",
+      "to": "新函馆北斗",
+      "to_jr": "Shin-Hakodate-Hokuto",
+      "line": "北海道新干线",
+      "fare": {
+        "free": null,
+        "reserved": 23430,
+        "green": 32300,
+        "granclass": 43830
+      },
+      "child_ratio": 0.5,
+      "duration_min": 248
+    },
+    {
+      "from": "东京",
+      "from_jr": "Tokyo",
+      "to": "长野",
+      "to_jr": "Nagano",
+      "line": "北陆新干线",
+      "fare": {
+        "free": 7810,
+        "reserved": 8340,
+        "green": 12000,
+        "granclass": 19530
+      },
+      "child_ratio": 0.5,
+      "duration_min": 80
+    },
+    {
+      "from": "东京",
+      "from_jr": "Tokyo",
+      "to": "富山",
+      "to_jr": "Toyama",
+      "line": "北陆新干线",
+      "fare": {
+        "free": 12430,
+        "reserved": 12960,
+        "green": 19420,
+        "granclass": 30950
+      },
+      "child_ratio": 0.5,
+      "duration_min": 118
+    },
+    {
+      "from": "东京",
+      "from_jr": "Tokyo",
+      "to": "金泽",
+      "to_jr": "Kanazawa",
+      "line": "北陆新干线",
+      "fare": {
+        "free": 13850,
+        "reserved": 14380,
+        "green": 20840,
+        "granclass": 32370
+      },
+      "child_ratio": 0.5,
+      "duration_min": 133
+    },
+    {
+      "from": "金泽",
+      "from_jr": "Kanazawa",
+      "to": "富山",
+      "to_jr": "Toyama",
+      "line": "北陆新干线",
+      "fare": {
+        "free": null,
+        "reserved": 3390,
+        "green": null,
+        "granclass": 9930
+      },
+      "child_ratio": 0.5,
+      "duration_min": 22
+    },
+    {
+      "from": "东京",
+      "from_jr": "Tokyo",
+      "to": "新潟",
+      "to_jr": "Niigata",
+      "line": "上越新干线",
+      "fare": {
+        "free": 10230,
+        "reserved": 10760,
+        "green": 14420,
+        "granclass": 18100
+      },
+      "child_ratio": 0.5,
+      "duration_min": 100
+    }
+  ]
+}
