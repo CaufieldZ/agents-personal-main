@@ -2,5 +2,36 @@
   "env": {
     "HTTP_PROXY": "http://127.0.0.1:7897",
     "HTTPS_PROXY": "http://127.0.0.1:7897"
+  },
+  "permissions": {
+    "allow": [
+      "WebSearch(*)",
+      "WebFetch(*)",
+      "Bash(curl *)",
+      "Bash(pip *)",
+      "Bash(pip3 *)",
+      "Bash(.venv/bin/pip *)",
+      "Bash(npm *)",
+      "Bash(npx *)",
+      "Bash(cp *)",
+      "Bash(mv *)",
+      "Bash(mkdir *)",
+      "Bash(touch *)",
+      "Bash(chmod *)",
+      "Bash(open *)",
+      "Bash(kill *)",
+      "Bash(pkill *)",
+      "Bash(nohup *)",
+      "Bash(tail -f *)",
+      "Bash(tail -n *)",
+      "Bash(.venv/bin/python commands/inbox.py)",
+      "Bash(.venv/bin/python commands/inbox.py *)",
+      "Bash(python3 commands/inbox.py)",
+      "Bash(python3 commands/inbox.py *)",
+      "Bash(.venv/bin/python scripts/show_shinkansen.py *)",
+      "Bash(.venv/bin/python scripts/show_fx.py)",
+      "Bash(.venv/bin/python scripts/show_fx.py *)",
+      "Bash(.venv/bin/python commands/mark.py --list-statuses)"
+    ]
   }
 }

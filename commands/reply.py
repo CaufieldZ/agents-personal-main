@@ -15,6 +15,7 @@ from pathlib import Path
 
 _ROOT = Path(__file__).parent.parent
 sys.path.insert(0, str(_ROOT))
+sys.path.insert(0, str(_ROOT / "vendor" / "xianyu_live"))
 
 from lib.order_store import load
 
@@ -44,9 +45,22 @@ def main() -> None:
     parser.add_argument("--order-id", help="从订单自动解析 chat_id 和 to_uid")
     parser.add_argument("--chat-id", help="会话 ID")
     parser.add_argument("--to-uid", help="买家 UID")
-    parser.add_argument("--text", required=True, help="消息正文")
+    parser.add_argument("--text", help="消息正文（与 --use-quoted-text 二选一）")
+    parser.add_argument("--use-quoted-text", action="store_true",
+                        help="发订单 pricing.quoted_text（quote.py 生成的话术），需配 --order-id")
     parser.add_argument("--confirm", action="store_true", help="加此参数才真发，否则只打印")
     args = parser.parse_args()
+
+    if args.use_quoted_text:
+        if not args.order_id:
+            print("--use-quoted-text 必须配 --order-id"); sys.exit(2)
+        order = load(args.order_id)
+        text = (order.get("pricing") or {}).get("quoted_text", "").strip()
+        if not text:
+            print("订单 pricing.quoted_text 为空，先跑 quote.py 生成"); sys.exit(2)
+        args.text = text
+    elif not args.text:
+        print("需要 --text 或 --use-quoted-text"); sys.exit(2)
 
     chat_id, to_uid = _resolve(args)
 

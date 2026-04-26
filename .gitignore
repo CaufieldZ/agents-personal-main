@@ -2,6 +2,10 @@
 .venv/
 .env
 config/xianyu_cookies.txt
+config/amadeus.env
+config/serpapi.env
+config/travelpayouts.env
+data/amadeus_token.json
 logs/
 __pycache__/
 tasks/

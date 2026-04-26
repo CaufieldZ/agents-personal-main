@@ -13,6 +13,7 @@ from pathlib import Path
 
 _ROOT = Path(__file__).parent.parent
 sys.path.insert(0, str(_ROOT))
+sys.path.insert(0, str(_ROOT / "vendor" / "xianyu_live"))
 
 from lib.order_store import load, save, update_status
 

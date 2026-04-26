@@ -1,0 +1,145 @@
+{
+  "updated_at": "2026-04-27",
+  "note": "IATA 三字码数据源。多机场城市必收（用于追问买家「哪个机场」），中日韩港台 + 东南亚 + 欧美主要单机场城市覆盖 95% 业务。city_iata = IATA 城市码（TYO/NYC/LON 等）；单机场城市的 city_iata 直接复用机场码。note 字段写「位置 + 用途特征」，用于追问时给买家一句倾向性建议。",
+  "airports": [
+    {"iata": "HND", "name_cn": "羽田", "name_en": "Haneda", "city_cn": "东京", "city_en": "Tokyo", "country": "JP", "city_iata": "TYO", "note": "市区近（30 分钟到品川），国内+国际"},
+    {"iata": "NRT", "name_cn": "成田", "name_en": "Narita", "city_cn": "东京", "city_en": "Tokyo", "country": "JP", "city_iata": "TYO", "note": "远（市区 1.5h），国际线为主，廉航多"},
+
+    {"iata": "KIX", "name_cn": "关西", "name_en": "Kansai", "city_cn": "大阪", "city_en": "Osaka", "country": "JP", "city_iata": "OSA", "note": "国际线唯一选择，市区 1h"},
+    {"iata": "ITM", "name_cn": "伊丹", "name_en": "Itami", "city_cn": "大阪", "city_en": "Osaka", "country": "JP", "city_iata": "OSA", "note": "市区近，纯国内线"},
+
+    {"iata": "PVG", "name_cn": "浦东", "name_en": "Pudong", "city_cn": "上海", "city_en": "Shanghai", "country": "CN", "city_iata": "SHA", "note": "国际线为主，远（市区 1h）"},
+    {"iata": "SHA", "name_cn": "虹桥", "name_en": "Hongqiao", "city_cn": "上海", "city_en": "Shanghai", "country": "CN", "city_iata": "SHA", "note": "市区近，国内+少量日韩"},
+
+    {"iata": "PEK", "name_cn": "首都", "name_en": "Capital", "city_cn": "北京", "city_en": "Beijing", "country": "CN", "city_iata": "BJS", "note": "T3 国航/星空，T2 东航南航/天合"},
+    {"iata": "PKX", "name_cn": "大兴", "name_en": "Daxing", "city_cn": "北京", "city_en": "Beijing", "country": "CN", "city_iata": "BJS", "note": "南航/东航/天合主基地，距市区远"},
+
+    {"iata": "ICN", "name_cn": "仁川", "name_en": "Incheon", "city_cn": "首尔", "city_en": "Seoul", "country": "KR", "city_iata": "SEL", "note": "国际线唯一，远（市区 1h）"},
+    {"iata": "GMP", "name_cn": "金浦", "name_en": "Gimpo", "city_cn": "首尔", "city_en": "Seoul", "country": "KR", "city_iata": "SEL", "note": "市区近，国内+东京/上海/台北穿梭"},
+
+    {"iata": "TPE", "name_cn": "桃园", "name_en": "Taoyuan", "city_cn": "台北", "city_en": "Taipei", "country": "TW", "city_iata": "TPE", "note": "国际线为主，距市区 40 分钟"},
+    {"iata": "TSA", "name_cn": "松山", "name_en": "Songshan", "city_cn": "台北", "city_en": "Taipei", "country": "TW", "city_iata": "TPE", "note": "市区内，国内+东京/上海/首尔穿梭"},
+
+    {"iata": "BKK", "name_cn": "素万那普", "name_en": "Suvarnabhumi", "city_cn": "曼谷", "city_en": "Bangkok", "country": "TH", "city_iata": "BKK", "note": "国际线主港，全服务航司"},
+    {"iata": "DMK", "name_cn": "廊曼", "name_en": "Don Mueang", "city_cn": "曼谷", "city_en": "Bangkok", "country": "TH", "city_iata": "BKK", "note": "亚航/泰狮等廉航主基地"},
+
+    {"iata": "CGK", "name_cn": "苏加诺-哈达", "name_en": "Soekarno-Hatta", "city_cn": "雅加达", "city_en": "Jakarta", "country": "ID", "city_iata": "JKT", "note": "国际+国内主港"},
+    {"iata": "HLP", "name_cn": "哈利姆", "name_en": "Halim", "city_cn": "雅加达", "city_en": "Jakarta", "country": "ID", "city_iata": "JKT", "note": "市区近，国内为主"},
+
+    {"iata": "TFU", "name_cn": "天府", "name_en": "Tianfu", "city_cn": "成都", "city_en": "Chengdu", "country": "CN", "city_iata": "CTU", "note": "国航/川航国际线，新机场"},
+    {"iata": "CTU", "name_cn": "双流", "name_en": "Shuangliu", "city_cn": "成都", "city_en": "Chengdu", "country": "CN", "city_iata": "CTU", "note": "国内线为主，市区近"},
+
+    {"iata": "JFK", "name_cn": "肯尼迪", "name_en": "Kennedy", "city_cn": "纽约", "city_en": "New York", "country": "US", "city_iata": "NYC", "note": "国际主港，曼哈顿东南"},
+    {"iata": "LGA", "name_cn": "拉瓜迪亚", "name_en": "LaGuardia", "city_cn": "纽约", "city_en": "New York", "country": "US", "city_iata": "NYC", "note": "国内线，距曼哈顿最近"},
+    {"iata": "EWR", "name_cn": "纽瓦克", "name_en": "Newark", "city_cn": "纽约", "city_en": "New York", "country": "US", "city_iata": "NYC", "note": "联航主基地，国际+国内，新泽西州"},
+
+    {"iata": "LHR", "name_cn": "希思罗", "name_en": "Heathrow", "city_cn": "伦敦", "city_en": "London", "country": "GB", "city_iata": "LON", "note": "国际主港，英航/星空/天合"},
+    {"iata": "LGW", "name_cn": "盖特威克", "name_en": "Gatwick", "city_cn": "伦敦", "city_en": "London", "country": "GB", "city_iata": "LON", "note": "易捷/英航次主，南郊"},
+    {"iata": "STN", "name_cn": "斯坦斯特德", "name_en": "Stansted", "city_cn": "伦敦", "city_en": "London", "country": "GB", "city_iata": "LON", "note": "Ryanair 主基地，远"},
+    {"iata": "LTN", "name_cn": "卢顿", "name_en": "Luton", "city_cn": "伦敦", "city_en": "London", "country": "GB", "city_iata": "LON", "note": "易捷/Wizz 主，远"},
+    {"iata": "LCY", "name_cn": "城市", "name_en": "City", "city_cn": "伦敦", "city_en": "London", "country": "GB", "city_iata": "LON", "note": "金丝雀码头近，商务短途"},
+
+    {"iata": "CDG", "name_cn": "戴高乐", "name_en": "Charles de Gaulle", "city_cn": "巴黎", "city_en": "Paris", "country": "FR", "city_iata": "PAR", "note": "国际主港，法航/天合"},
+    {"iata": "ORY", "name_cn": "奥利", "name_en": "Orly", "city_cn": "巴黎", "city_en": "Paris", "country": "FR", "city_iata": "PAR", "note": "市区近，国内+欧洲短途"},
+
+    {"iata": "SVO", "name_cn": "谢列梅捷沃", "name_en": "Sheremetyevo", "city_cn": "莫斯科", "city_en": "Moscow", "country": "RU", "city_iata": "MOW", "note": "俄航主基地，国际线"},
+    {"iata": "DME", "name_cn": "多莫杰多沃", "name_en": "Domodedovo", "city_cn": "莫斯科", "city_en": "Moscow", "country": "RU", "city_iata": "MOW", "note": "S7/乌航等"},
+    {"iata": "VKO", "name_cn": "伏努科沃", "name_en": "Vnukovo", "city_cn": "莫斯科", "city_en": "Moscow", "country": "RU", "city_iata": "MOW", "note": "Pobeda/Utair，国内为主"},
+
+    {"iata": "IAD", "name_cn": "杜勒斯", "name_en": "Dulles", "city_cn": "华盛顿", "city_en": "Washington", "country": "US", "city_iata": "WAS", "note": "国际线主，远"},
+    {"iata": "DCA", "name_cn": "里根", "name_en": "Reagan", "city_cn": "华盛顿", "city_en": "Washington", "country": "US", "city_iata": "WAS", "note": "市区最近，国内"},
+    {"iata": "BWI", "name_cn": "巴尔的摩", "name_en": "Baltimore", "city_cn": "华盛顿", "city_en": "Washington", "country": "US", "city_iata": "WAS", "note": "西南航主，便宜，离 DC 较远"},
+
+    {"iata": "ORD", "name_cn": "奥黑尔", "name_en": "O'Hare", "city_cn": "芝加哥", "city_en": "Chicago", "country": "US", "city_iata": "CHI", "note": "联航/美航枢纽"},
+    {"iata": "MDW", "name_cn": "中途", "name_en": "Midway", "city_cn": "芝加哥", "city_en": "Chicago", "country": "US", "city_iata": "CHI", "note": "西南航主，市区近"},
+
+    {"iata": "MXP", "name_cn": "马尔彭萨", "name_en": "Malpensa", "city_cn": "米兰", "city_en": "Milan", "country": "IT", "city_iata": "MIL", "note": "国际主港"},
+    {"iata": "LIN", "name_cn": "利纳特", "name_en": "Linate", "city_cn": "米兰", "city_en": "Milan", "country": "IT", "city_iata": "MIL", "note": "市区近，国内+欧洲短途"},
+    {"iata": "BGY", "name_cn": "贝加莫", "name_en": "Bergamo", "city_cn": "米兰", "city_en": "Milan", "country": "IT", "city_iata": "MIL", "note": "Ryanair 主基地"},
+
+    {"iata": "FCO", "name_cn": "菲乌米奇诺", "name_en": "Fiumicino", "city_cn": "罗马", "city_en": "Rome", "country": "IT", "city_iata": "ROM", "note": "国际主港"},
+    {"iata": "CIA", "name_cn": "钱皮诺", "name_en": "Ciampino", "city_cn": "罗马", "city_en": "Rome", "country": "IT", "city_iata": "ROM", "note": "Ryanair 主基地，市区近"},
+
+    {"iata": "YYZ", "name_cn": "皮尔逊", "name_en": "Pearson", "city_cn": "多伦多", "city_en": "Toronto", "country": "CA", "city_iata": "YTO", "note": "加航主港，国际+国内"},
+    {"iata": "YTZ", "name_cn": "比利毕晓普", "name_en": "Billy Bishop", "city_cn": "多伦多", "city_en": "Toronto", "country": "CA", "city_iata": "YTO", "note": "市中心岛上，Porter 主"},
+
+    {"iata": "GRU", "name_cn": "瓜鲁柳斯", "name_en": "Guarulhos", "city_cn": "圣保罗", "city_en": "São Paulo", "country": "BR", "city_iata": "SAO", "note": "国际主港"},
+    {"iata": "CGH", "name_cn": "孔戈尼亚斯", "name_en": "Congonhas", "city_cn": "圣保罗", "city_en": "São Paulo", "country": "BR", "city_iata": "SAO", "note": "市区内，国内"},
+
+    {"iata": "ARN", "name_cn": "阿兰达", "name_en": "Arlanda", "city_cn": "斯德哥尔摩", "city_en": "Stockholm", "country": "SE", "city_iata": "STO", "note": "国际主港"},
+    {"iata": "BMA", "name_cn": "布鲁玛", "name_en": "Bromma", "city_cn": "斯德哥尔摩", "city_en": "Stockholm", "country": "SE", "city_iata": "STO", "note": "市区近，国内"},
+
+    {"iata": "HKG", "name_cn": "香港", "name_en": "Hong Kong", "city_cn": "香港", "city_en": "Hong Kong", "country": "HK", "city_iata": "HKG", "note": "赤鱲角"},
+    {"iata": "MFM", "name_cn": "澳门", "name_en": "Macau", "city_cn": "澳门", "city_en": "Macau", "country": "MO", "city_iata": "MFM", "note": "氹仔"},
+    {"iata": "KHH", "name_cn": "高雄", "name_en": "Kaohsiung", "city_cn": "高雄", "city_en": "Kaohsiung", "country": "TW", "city_iata": "KHH", "note": "小港"},
+    {"iata": "RMQ", "name_cn": "台中", "name_en": "Taichung", "city_cn": "台中", "city_en": "Taichung", "country": "TW", "city_iata": "RMQ", "note": "清泉岗"},
+
+    {"iata": "CAN", "name_cn": "广州", "name_en": "Guangzhou", "city_cn": "广州", "city_en": "Guangzhou", "country": "CN", "city_iata": "CAN", "note": "白云，南航主基地"},
+    {"iata": "SZX", "name_cn": "深圳", "name_en": "Shenzhen", "city_cn": "深圳", "city_en": "Shenzhen", "country": "CN", "city_iata": "SZX", "note": "宝安"},
+    {"iata": "CKG", "name_cn": "重庆", "name_en": "Chongqing", "city_cn": "重庆", "city_en": "Chongqing", "country": "CN", "city_iata": "CKG", "note": "江北"},
+    {"iata": "HGH", "name_cn": "杭州", "name_en": "Hangzhou", "city_cn": "杭州", "city_en": "Hangzhou", "country": "CN", "city_iata": "HGH", "note": "萧山"},
+    {"iata": "NKG", "name_cn": "南京", "name_en": "Nanjing", "city_cn": "南京", "city_en": "Nanjing", "country": "CN", "city_iata": "NKG", "note": "禄口"},
+    {"iata": "WUH", "name_cn": "武汉", "name_en": "Wuhan", "city_cn": "武汉", "city_en": "Wuhan", "country": "CN", "city_iata": "WUH", "note": "天河"},
+    {"iata": "XIY", "name_cn": "西安", "name_en": "Xi'an", "city_cn": "西安", "city_en": "Xi'an", "country": "CN", "city_iata": "XIY", "note": "咸阳"},
+    {"iata": "TSN", "name_cn": "天津", "name_en": "Tianjin", "city_cn": "天津", "city_en": "Tianjin", "country": "CN", "city_iata": "TSN", "note": "滨海"},
+    {"iata": "XMN", "name_cn": "厦门", "name_en": "Xiamen", "city_cn": "厦门", "city_en": "Xiamen", "country": "CN", "city_iata": "XMN", "note": "高崎，厦航主基地"},
+    {"iata": "TAO", "name_cn": "青岛", "name_en": "Qingdao", "city_cn": "青岛", "city_en": "Qingdao", "country": "CN", "city_iata": "TAO", "note": "胶东"},
+    {"iata": "DLC", "name_cn": "大连", "name_en": "Dalian", "city_cn": "大连", "city_en": "Dalian", "country": "CN", "city_iata": "DLC", "note": "周水子"},
+    {"iata": "KMG", "name_cn": "昆明", "name_en": "Kunming", "city_cn": "昆明", "city_en": "Kunming", "country": "CN", "city_iata": "KMG", "note": "长水"},
+    {"iata": "HAK", "name_cn": "海口", "name_en": "Haikou", "city_cn": "海口", "city_en": "Haikou", "country": "CN", "city_iata": "HAK", "note": "美兰"},
+    {"iata": "SYX", "name_cn": "三亚", "name_en": "Sanya", "city_cn": "三亚", "city_en": "Sanya", "country": "CN", "city_iata": "SYX", "note": "凤凰"},
+    {"iata": "CSX", "name_cn": "长沙", "name_en": "Changsha", "city_cn": "长沙", "city_en": "Changsha", "country": "CN", "city_iata": "CSX", "note": "黄花"},
+    {"iata": "CGO", "name_cn": "郑州", "name_en": "Zhengzhou", "city_cn": "郑州", "city_en": "Zhengzhou", "country": "CN", "city_iata": "CGO", "note": "新郑"},
+    {"iata": "FOC", "name_cn": "福州", "name_en": "Fuzhou", "city_cn": "福州", "city_en": "Fuzhou", "country": "CN", "city_iata": "FOC", "note": "长乐"},
+
+    {"iata": "NGO", "name_cn": "中部", "name_en": "Chubu Centrair", "city_cn": "名古屋", "city_en": "Nagoya", "country": "JP", "city_iata": "NGO", "note": "国际+国内"},
+    {"iata": "FUK", "name_cn": "福冈", "name_en": "Fukuoka", "city_cn": "福冈", "city_en": "Fukuoka", "country": "JP", "city_iata": "FUK", "note": "市区极近"},
+    {"iata": "CTS", "name_cn": "新千岁", "name_en": "New Chitose", "city_cn": "札幌", "city_en": "Sapporo", "country": "JP", "city_iata": "SPK", "note": "北海道国际门户"},
+    {"iata": "OKA", "name_cn": "那霸", "name_en": "Naha", "city_cn": "那霸", "city_en": "Naha", "country": "JP", "city_iata": "OKA", "note": "冲绳本岛"},
+    {"iata": "SDJ", "name_cn": "仙台", "name_en": "Sendai", "city_cn": "仙台", "city_en": "Sendai", "country": "JP", "city_iata": "SDJ", "note": "东北"},
+    {"iata": "HIJ", "name_cn": "广岛", "name_en": "Hiroshima", "city_cn": "广岛", "city_en": "Hiroshima", "country": "JP", "city_iata": "HIJ", "note": "-"},
+    {"iata": "KOJ", "name_cn": "鹿儿岛", "name_en": "Kagoshima", "city_cn": "鹿儿岛", "city_en": "Kagoshima", "country": "JP", "city_iata": "KOJ", "note": "九州南"},
+    {"iata": "KIJ", "name_cn": "新潟", "name_en": "Niigata", "city_cn": "新潟", "city_en": "Niigata", "country": "JP", "city_iata": "KIJ", "note": "-"},
+    {"iata": "KMJ", "name_cn": "熊本", "name_en": "Kumamoto", "city_cn": "熊本", "city_en": "Kumamoto", "country": "JP", "city_iata": "KMJ", "note": "-"},
+    {"iata": "HKD", "name_cn": "函馆", "name_en": "Hakodate", "city_cn": "函馆", "city_en": "Hakodate", "country": "JP", "city_iata": "HKD", "note": "北海道南"},
+    {"iata": "MMY", "name_cn": "宫古岛", "name_en": "Miyako", "city_cn": "宫古岛", "city_en": "Miyakojima", "country": "JP", "city_iata": "MMY", "note": "冲绳离岛"},
+    {"iata": "ISG", "name_cn": "新石垣", "name_en": "New Ishigaki", "city_cn": "石垣岛", "city_en": "Ishigaki", "country": "JP", "city_iata": "ISG", "note": "冲绳离岛"},
+
+    {"iata": "PUS", "name_cn": "釜山", "name_en": "Busan", "city_cn": "釜山", "city_en": "Busan", "country": "KR", "city_iata": "PUS", "note": "金海"},
+    {"iata": "CJU", "name_cn": "济州", "name_en": "Jeju", "city_cn": "济州", "city_en": "Jeju", "country": "KR", "city_iata": "CJU", "note": "-"},
+
+    {"iata": "SIN", "name_cn": "新加坡", "name_en": "Changi", "city_cn": "新加坡", "city_en": "Singapore", "country": "SG", "city_iata": "SIN", "note": "樟宜"},
+    {"iata": "KUL", "name_cn": "吉隆坡", "name_en": "Kuala Lumpur", "city_cn": "吉隆坡", "city_en": "Kuala Lumpur", "country": "MY", "city_iata": "KUL", "note": "KLIA1+KLIA2 同址，KLIA2 亚航"},
+    {"iata": "HKT", "name_cn": "普吉", "name_en": "Phuket", "city_cn": "普吉", "city_en": "Phuket", "country": "TH", "city_iata": "HKT", "note": "-"},
+    {"iata": "CNX", "name_cn": "清迈", "name_en": "Chiang Mai", "city_cn": "清迈", "city_en": "Chiang Mai", "country": "TH", "city_iata": "CNX", "note": "-"},
+    {"iata": "SGN", "name_cn": "新山一", "name_en": "Tan Son Nhat", "city_cn": "胡志明市", "city_en": "Ho Chi Minh", "country": "VN", "city_iata": "SGN", "note": "-"},
+    {"iata": "HAN", "name_cn": "内排", "name_en": "Noi Bai", "city_cn": "河内", "city_en": "Hanoi", "country": "VN", "city_iata": "HAN", "note": "-"},
+    {"iata": "DAD", "name_cn": "岘港", "name_en": "Da Nang", "city_cn": "岘港", "city_en": "Da Nang", "country": "VN", "city_iata": "DAD", "note": "-"},
+    {"iata": "MNL", "name_cn": "马尼拉", "name_en": "Ninoy Aquino", "city_cn": "马尼拉", "city_en": "Manila", "country": "PH", "city_iata": "MNL", "note": "-"},
+    {"iata": "DPS", "name_cn": "巴厘", "name_en": "Ngurah Rai", "city_cn": "巴厘岛", "city_en": "Bali", "country": "ID", "city_iata": "DPS", "note": "登巴萨"},
+
+    {"iata": "FRA", "name_cn": "法兰克福", "name_en": "Frankfurt", "city_cn": "法兰克福", "city_en": "Frankfurt", "country": "DE", "city_iata": "FRA", "note": "汉莎主基地"},
+    {"iata": "MUC", "name_cn": "慕尼黑", "name_en": "Munich", "city_cn": "慕尼黑", "city_en": "Munich", "country": "DE", "city_iata": "MUC", "note": "汉莎次基地"},
+    {"iata": "AMS", "name_cn": "史基浦", "name_en": "Schiphol", "city_cn": "阿姆斯特丹", "city_en": "Amsterdam", "country": "NL", "city_iata": "AMS", "note": "KLM 主基地"},
+    {"iata": "ZRH", "name_cn": "苏黎世", "name_en": "Zurich", "city_cn": "苏黎世", "city_en": "Zurich", "country": "CH", "city_iata": "ZRH", "note": "瑞航主基地"},
+    {"iata": "VIE", "name_cn": "维也纳", "name_en": "Vienna", "city_cn": "维也纳", "city_en": "Vienna", "country": "AT", "city_iata": "VIE", "note": "奥航主基地"},
+    {"iata": "HEL", "name_cn": "赫尔辛基", "name_en": "Helsinki", "city_cn": "赫尔辛基", "city_en": "Helsinki", "country": "FI", "city_iata": "HEL", "note": "芬航主基地"},
+    {"iata": "CPH", "name_cn": "哥本哈根", "name_en": "Copenhagen", "city_cn": "哥本哈根", "city_en": "Copenhagen", "country": "DK", "city_iata": "CPH", "note": "北欧航主"},
+    {"iata": "MAD", "name_cn": "马德里", "name_en": "Madrid Barajas", "city_cn": "马德里", "city_en": "Madrid", "country": "ES", "city_iata": "MAD", "note": "伊比利亚主"},
+    {"iata": "BCN", "name_cn": "巴塞罗那", "name_en": "Barcelona", "city_cn": "巴塞罗那", "city_en": "Barcelona", "country": "ES", "city_iata": "BCN", "note": "-"},
+    {"iata": "BER", "name_cn": "柏林", "name_en": "Berlin Brandenburg", "city_cn": "柏林", "city_en": "Berlin", "country": "DE", "city_iata": "BER", "note": "TXL 已关，现单一机场"},
+
+    {"iata": "SFO", "name_cn": "旧金山", "name_en": "San Francisco", "city_cn": "旧金山", "city_en": "San Francisco", "country": "US", "city_iata": "SFO", "note": "联航主基地"},
+    {"iata": "LAX", "name_cn": "洛杉矶", "name_en": "Los Angeles", "city_cn": "洛杉矶", "city_en": "Los Angeles", "country": "US", "city_iata": "LAX", "note": "-"},
+    {"iata": "SEA", "name_cn": "西雅图", "name_en": "Seattle-Tacoma", "city_cn": "西雅图", "city_en": "Seattle", "country": "US", "city_iata": "SEA", "note": "阿拉斯加航主"},
+    {"iata": "BOS", "name_cn": "波士顿", "name_en": "Logan", "city_cn": "波士顿", "city_en": "Boston", "country": "US", "city_iata": "BOS", "note": "-"},
+    {"iata": "YVR", "name_cn": "温哥华", "name_en": "Vancouver", "city_cn": "温哥华", "city_en": "Vancouver", "country": "CA", "city_iata": "YVR", "note": "-"},
+
+    {"iata": "SYD", "name_cn": "悉尼", "name_en": "Kingsford Smith", "city_cn": "悉尼", "city_en": "Sydney", "country": "AU", "city_iata": "SYD", "note": "-"},
+    {"iata": "MEL", "name_cn": "墨尔本", "name_en": "Tullamarine", "city_cn": "墨尔本", "city_en": "Melbourne", "country": "AU", "city_iata": "MEL", "note": "-"},
+    {"iata": "AKL", "name_cn": "奥克兰", "name_en": "Auckland", "city_cn": "奥克兰", "city_en": "Auckland", "country": "NZ", "city_iata": "AKL", "note": "新西兰"},
+
+    {"iata": "DXB", "name_cn": "迪拜", "name_en": "Dubai", "city_cn": "迪拜", "city_en": "Dubai", "country": "AE", "city_iata": "DXB", "note": "阿联酋主基地"},
+    {"iata": "DOH", "name_cn": "多哈", "name_en": "Hamad", "city_cn": "多哈", "city_en": "Doha", "country": "QA", "city_iata": "DOH", "note": "卡塔尔主基地"}
+  ]
+}

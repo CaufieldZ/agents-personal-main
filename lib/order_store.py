@@ -72,6 +72,10 @@ def update_status(order_id: str, status: str, note: Optional[str] = None) -> dic
     }
     if note:
         entry["note"] = note
-    order.setdefault("timeline", []).append(entry)
+    timeline = order.setdefault("timeline", [])
+    if timeline and timeline[-1].get("status") == status:
+        timeline[-1] = entry
+    else:
+        timeline.append(entry)
     save(order)
     return order

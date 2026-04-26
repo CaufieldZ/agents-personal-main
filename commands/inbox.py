@@ -67,8 +67,12 @@ def main() -> None:
                 (e.get("sender_name") for e in evs if e.get("direction") != "out"),
                 evs[0].get("sender_name") or evs[0].get("sender_id", "")
             )
+            buyer_uid = next(
+                (e.get("sender_id") for e in evs if e.get("direction") != "out"),
+                ""
+            )
             item_id = evs[0].get("item_id", "")
-            print(f"\n会话 {chat_id}  买家={buyer}  商品={item_id}  共 {len(evs)} 条")
+            print(f"\n会话 {chat_id}  买家={buyer}（uid={buyer_uid}）  商品={item_id}  共 {len(evs)} 条")
             for ev in evs:
                 mark      = "[已读]" if ev.get("processed") else "[新]  "
                 ts        = ev.get("ts", "")[:16]

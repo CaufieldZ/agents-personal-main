@@ -135,6 +135,10 @@ def main() -> None:
     print()
     print(f"  报价 (×{QUOTE_RATIO} 抹零)  : ¥{quoted}")
     print(f"  利润预演 (回执后): ¥{profit:.0f}  = {quoted} − {klook_cny:.0f}×0.4")
+    print()
+    print(f"下一步（写订单 + 生成话术）：")
+    print(f"  单档：python3 commands/quote.py --order-id <ID> --jpy-price {jr_per} --seat {args.seat}")
+    print(f"  全档：python3 commands/quote.py --order-id <ID> --rail-route {frm}-{to}")
 
 
 if __name__ == "__main__":
