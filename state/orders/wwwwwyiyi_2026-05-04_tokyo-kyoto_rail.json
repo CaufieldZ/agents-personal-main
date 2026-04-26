@@ -1,20 +1,20 @@
 {
   "xianyu_order_id": "wwwwwyiyi_2026-05-04_tokyo-kyoto_rail",
-  "xianyu_chat_id": "",
+  "xianyu_chat_id": "60975312198",
   "buyer": {
     "nick": "wwwww壹壹",
-    "xianyu_uid": ""
+    "xianyu_uid": "1030016385"
   },
   "item": {
     "type": "rail",
     "summary": "新干线代订",
-    "xianyu_item_id": ""
+    "xianyu_item_id": "964544425769"
   },
   "trip": {
-    "origin": "",
-    "origin_code": "",
-    "destination": "",
-    "destination_code": "",
+    "origin": "东京",
+    "origin_code": "TOKYO",
+    "destination": "京都",
+    "destination_code": "KYOTO",
     "is_round_trip": false,
     "departure_date": "2026-05-04",
     "return_date": "",
@@ -22,16 +22,17 @@
     "passenger_count": 1,
     "ticket_count": 1,
     "route": "东京站 → 京都站",
-    "airline": ""
+    "airline": "",
+    "seat_class": "指定席"
   },
   "travelers": [],
   "pricing": {
-    "ctrip_price": 617.0,
-    "quoted_price": 450,
+    "ctrip_price": null,
+    "quoted_price": 420,
     "currency": "CNY",
-    "source": "Klook"
+    "source": ""
   },
-  "status": "已报价",
+  "status": "已付款",
   "timeline": [
     {
       "status": "待发单",
@@ -40,7 +41,12 @@
     {
       "status": "已报价",
       "at": "2026-04-26T22:40:23+08:00",
-      "note": "报价 450 元（携程 617 × 75%）"
+      "note": "报价 420 元"
+    },
+    {
+      "status": "已付款",
+      "at": "2026-04-27T01:32:13+08:00",
+      "note": "买家拍下并付款（聊天回溯校正）"
     }
   ],
   "fulfillment": {
@@ -48,5 +54,11 @@
     "supplier_attachments": [],
     "buyer_receipt_sent_at": null
   },
-  "notes": []
+  "notes": [
+    "取票方式：二维码",
+    "出票时间：出发前 2 天（约 5/2）",
+    "买家说时间可灵活：「你说啥时候出发就啥时候出发」，但默认 10:00 左右",
+    "5/8 京都→关西机场线买家咨询过，已拒（让她自己 Klook 买）",
+    "原 JSON 报价 450 错误，与实际聊天 420 不符，已修正"
+  ]
 }

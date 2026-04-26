@@ -15,29 +15,76 @@
 
 `ffmpeg`（视频/音频）、`imagemagick`（图片批处理）、`python3` + `openpyxl`（数据/Excel）。脚本默认存 `scripts/`，下次复用。
 
+**Excel/openpyxl 输出验证**：用 WPS / Numbers / Excel 打开，VSCode 内置 xlsx 预览不渲染样式（字体/颜色/列宽/超链接全丢），别根据 VSCode 截图判断「丑」。
+
 ## 目录
 
 - `tasks/` 待办、视频音频素材（短期工作产物）
 - `notes/` 小抄、备忘（长期知识）
 - `listings/` 闲鱼商品文案，命名 `{商品}-{日期}.md`
-- `scripts/` 通用脚本（pdf_merge / img_compress / av_trim / 等）
+- `scripts/` 通用脚本
 - `state/orders/` 订单 JSON（每笔一个，文件名 = `xianyu_order_id`）
 - `state/incoming/` 守护进程落盘事件（`chat_*.json` 私信，`pnr_*.json` 上游 PNR）
-- `state/attachments/` 下载图片（护照、PNR 截图）
-- `lib/` order_store / order_formatter / xianyu_client / tg_client
+- `state/attachments/` 下载图片；上游 TG 走 `chat_<id>/`，手动 attach 走 `orders/<order-id>/`
+- `lib/` order_store / order_formatter / xianyu_client / tg_client / fx / tp_flights
 - `daemons/` xianyu_daemon.py（私信监听）, tg_listener.py（TG 群监听）
 - `commands/` Claude 协作命令（见下）
 - `vendor/xianyu_live/` XianyuAutoAgent 协议层快照（不改）
-- `data/` 价格数据源（新干线票价等）
+- `data/` 价格数据源（机场码、新干线票价、汇率缓存）
 - `config/xianyu_cookies.txt` 闲鱼 Cookie（gitignore，过期需浏览器过滑块后重拿，要带 `x5sec`）
+- `config/travelpayouts.env` Aviasales API token（gitignore）
 - `xianyu/ledger.xlsx` 台账
 - `logs/` 守护进程日志
 
 ## 闲鱼业务
 
-报价 = 携程价 × 0.75 抹零；下单成本 = 携程价 × 0.4；利润仅在「已发回执 / 已收货」状态计入台账。
+### 报价公式
 
-新干线特殊：传 JR 官方 JPY 价（`data/shinkansen_fares.json`），脚本自动 ×1.05 markup ×汇率得到 Klook 客户参考价（CNY），再按 0.75 抹零 → `quote.py --jpy-price N`。汇率走 `lib/fx.py`，24h 缓存。
+- 普通：报价 = 携程价 × 0.75 抹零；下单成本 = 携程价 × 0.4
+- 利润仅在「已发回执 / 已收货」状态计入台账
+- 新干线：JR 官方 JPY 价 ×1.05 markup ×汇率 → Klook 客户参考价（CNY），再 ×0.75 抹零；汇率走 `lib/fx.py` 24h 缓存
+
+### 业务规则（硬性，违反会出错单或踩用户雷区）
+
+- **不要手机号**。最多要邮箱
+- **不做 JR Pass**。买家提到 Pass 直接说不接，不报价
+- **不做酒店信用卡预授权**。要 CC guarantee 的酒店换或拒，不向买家要卡号
+- **铁路（新干线）不收任何乘客身份信息**——日本铁路是匿名票，rail 类 `travelers` 数组保持空；追问只问日期、人数、起讫站、时间、席位
+- **酒店只报含税价**，宿泊税含进总价，话术不要出现「不含税」「+ 税」
+- **铁路买家未指定席位时，把所有可用席位并列报**（自由席 / 指定席 / 绿色车厢 / Gran Class，按线路有什么报什么）
+- **廉航或需另购行李的航司**分别报「裸价」「含 23kg」两个价。命中航司：春秋、亚航、酷航、捷星、Spirit、Frontier、Ryanair、easyJet
+- **日本酒店默认 15:00 入住、12:00 退房**（不是 14:00 / 11:00）
+- **新干线旺季可能无自由席**（黄金周、お盆、新年；希望号 Nozomi 特定日期常年无自由席），报自由席前确认日期/班次
+
+### 沟通话术：礼貌 + 简洁 + 沉稳
+
+不松（"ok 就拍 / 我去下"）也不假（"您看 / 为您处理 / 方便的话"）。
+
+✗ 避免：句尾「啦/呗/咯/嘛/哦」、「ok」、「您」（除非对方明显年长）、「为您」「方便的话」、过短动词组「我去下 / 我去出票」
+
+✓ 倾向：完整句、动作前加「这边/我这边」、「确认/告知/需要」类稳重动词、「定了告诉我」而不是「定了喊我」
+
+| 场景 | 错（太松） | 错（太客服） | 对 |
+| --- | --- | --- | --- |
+| 报价确认 tail | ok 就拍，我去下 | 请确认后下单，即刻为您处理 | 确认就拍，我这边下单 |
+| 多档让买家选 | 要哪档就拍哪档 | 请您选择您所需的档位 | 确认哪档我这边下单 |
+| 砍价不让 | 这价是底，搞不定 | 抱歉先生这价已是最低 | 这价是底了，做不下来 |
+| 涨价告知 | 涨了，要不换个 | 非常抱歉因价格波动… | 这班涨到 ¥X，可以改 ¥X 或换 {方案 B} |
+| 退款告知 | 钱退啦 | 您的款项已为您原路退还 | 款项已原路退回 |
+| 催收货 | 帮忙确认下呗 | 麻烦您及时确认收货 | 行程顺利的话麻烦确认收货，谢谢 |
+
+### 截图代回复降级流程
+
+用户发携程/Klook/航司 app 截图让我代回买家时按四档选：
+
+| 档 | 触发 | 命令 |
+| --- | --- | --- |
+| L0 全自动 | 数据齐、订单已入库 | `quote.py --order-id X --ctrip-price N --send` |
+| L1 模板话术 + 我读价 | 截图给价、行程在 trip 字段里 | 同 L0，话术走模板 |
+| **L2 自定义话术 + 落账（默认）** | 截图含细节（航司/时刻/转机），话术要体现 | `quote.py --order-id X --price N --quoted-text "..." --send` |
+| L3 纯回复不落账 | 闲聊、答疑、订单未建 | `reply.py --chat-id X --to-uid Y --text "..." --confirm` |
+
+操作：先 Read 截图提价格 + 航司/班次/时刻/转机；自己算 ×0.75 抹零；不确定先 dry-run（不加 --send）让用户审；拿不准 chat_id / order-id 跑 `inbox.py` 确认。
 
 ### 订单 JSON schema 关键字段
 
@@ -47,7 +94,7 @@ buyer.{nick, xianyu_uid}
 item.{type=flight|hotel|rail, summary, xianyu_item_id}
 trip.{origin, origin_code, destination, destination_code, is_round_trip,
       departure_date, return_date, departure_time, passenger_count,
-      ticket_count, airline}
+      ticket_count, airline, route}        // route 仅 rail 用
 travelers[].{name_cn, name_en, gender, passport, passport_expiry, dob, nationality, baggage}
 pricing.{ctrip_price, quoted_price, currency, source}
 status   询价 | 已报价 | 已付款 | 已发单 | 已出票 | 已发回执 | 已收货 | 交易关闭
@@ -63,15 +110,17 @@ notes[]
 | 命令 | 用途 |
 | --- | --- |
 | `inbox.py [--all] [--mark-read]` | 列未处理事件，按会话分组，显示方向（← 买家 / → 你） |
-| `quote.py --order-id X {--ctrip-price N \| --jpy-price N} [--ratio 0.75 \| --price N] [--markup 1.05]` | 报价草稿，写入 `pricing.quoted_price`，timeline 追加「已报价」 |
-| `scripts/show_shinkansen.py FROM TO [SEAT]` | 查新干线 JR + Klook + 报价 一行（含 fuzzy 站名匹配） |
-| `scripts/show_fx.py [--refresh] [--jpy N]` | 查 / 刷新 JPY→CNY 汇率 |
+| `quote.py --order-id X {--ctrip-price N \| --jpy-price N} [--ratio 0.75 \| --price N] [--markup 1.05] [--quoted-text "..."] [--send]` | 报价草稿，写 `pricing.quoted_price`，timeline 追加「已报价」 |
 | `reply.py {--order-id X \| --chat-id Y --to-uid Z} --text "..." [--confirm]` | 闲鱼私信，无 `--confirm` 只 dry-run |
 | `dispatch.py --order-id X [--confirm]` | 发到 TG 发单群，timeline 追加「已发单」 |
-| `match_pnr.py [--pnr-file F --order-id X --pnr CODE [--confirm]]` | 关联上游 PNR 到订单，timeline 追加「已出票」 |
+| `match_pnr.py --order-id X [--pnr CODE] [--attachment FILE]... [--pnr-file F] [--confirm]` | 关联 PNR 文本/二维码截图到订单（附件复制到 `state/attachments/orders/<id>/`），timeline 追加「已出票」 |
 | `send_receipt.py --order-id X [--confirm]` | PNR 回执发买家，timeline 追加「已发回执」 |
 | `mark.py {--order-id X --status S [--note N] \| --list-statuses}` | 手动推进状态（仅向前，无回滚） |
-| `scripts/update_xianyu_ledger.py` | 刷新 `xianyu/ledger.xlsx` |
+| `scripts/show_shinkansen.py FROM TO [SEAT]` | 查新干线 JR + Klook + 报价 一行（含 fuzzy 站名匹配） |
+| `scripts/show_flight.py O D YYYY-MM [--return YYYY-MM] [--calendar]` | 查机票参考价（Travelpayouts/Aviasales 缓存数据，仅作对照携程参考） |
+| `scripts/show_airport.py {IATA \| 城市}` | 查机场三字码、同城多机场 |
+| `scripts/show_fx.py [--refresh] [--jpy N]` | 查 / 刷新 JPY→CNY 汇率 |
+| `scripts/update_xianyu_ledger.py` | 刷新 `xianyu/ledger.xlsx`（10 列：出发日 / 行程 / 人 / 买家 / 成交价 / 携程价 / 利润 / 状态 / PNR / 备注；二维码附件作超链接） |
 
 ### 启动守护进程
 

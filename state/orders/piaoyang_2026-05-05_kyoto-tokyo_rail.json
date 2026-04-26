@@ -1,0 +1,68 @@
+{
+  "xianyu_order_id": "piaoyang_2026-05-05_kyoto-tokyo_rail",
+  "xianyu_chat_id": "60938850046",
+  "buyer": {
+    "nick": "漂洋过海的洋洋",
+    "xianyu_uid": "756703815"
+  },
+  "item": {
+    "type": "rail",
+    "summary": "新干线 京都→东京 Hikari 644 指定席",
+    "xianyu_item_id": "964544425769"
+  },
+  "trip": {
+    "origin": "京都",
+    "origin_code": "KYOTO",
+    "destination": "东京",
+    "destination_code": "TOKYO",
+    "is_round_trip": false,
+    "departure_date": "2026-05-05",
+    "return_date": "",
+    "departure_time": "09:33",
+    "arrival_time": "12:12",
+    "passenger_count": 1,
+    "ticket_count": 1,
+    "route": "京都 → 东京",
+    "airline": "",
+    "train": "Hikari 644",
+    "line": "东海道·山阳新干线",
+    "seat_class": "指定席"
+  },
+  "travelers": [],
+  "pricing": {
+    "ctrip_price": null,
+    "quoted_price": 420,
+    "currency": "CNY",
+    "source": ""
+  },
+  "status": "已付款",
+  "timeline": [
+    {
+      "status": "询价",
+      "at": "2026-04-27T01:24:57+08:00",
+      "note": "京都→东京 5/5 指定席 1 人，曾问富士山位 +20 未接受"
+    },
+    {
+      "status": "已报价",
+      "at": "2026-04-27T01:24:57+08:00",
+      "note": "420 元（普通指定席，不含富士山位）"
+    },
+    {
+      "status": "已付款",
+      "at": "2026-04-27T01:24:57+08:00",
+      "note": "买家已付，约定出发前 3 天（5/2）出票"
+    }
+  ],
+  "fulfillment": {
+    "supplier_pnr": "",
+    "supplier_attachments": [
+      "state/attachments/chat_60938850046/img_first.jpg"
+    ],
+    "buyer_receipt_sent_at": null
+  },
+  "notes": [
+    "买家提供的车次截图：Hikari 644，京都 09:33 → 东京 12:12，2h39m，途径 米原/岐阜羽岛/名古屋/豊桥/新横浜/品川/东京",
+    "买家不要富士山位（曾砍价 400 被拒，曾问 420+富士山未接受）",
+    "5/2 出票，出票后联系买家发回执"
+  ]
+}

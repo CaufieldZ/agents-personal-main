@@ -31,7 +31,11 @@
       "Bash(.venv/bin/python scripts/show_shinkansen.py *)",
       "Bash(.venv/bin/python scripts/show_fx.py)",
       "Bash(.venv/bin/python scripts/show_fx.py *)",
-      "Bash(.venv/bin/python commands/mark.py --list-statuses)"
+      "Bash(.venv/bin/python commands/mark.py --list-statuses)",
+      "Bash(python3 commands/sk.py *)",
+      "Bash(.venv/bin/python commands/sk.py *)",
+      "Bash(python3 scripts/show_flight.py *)",
+      "Bash(.venv/bin/python scripts/show_flight.py *)"
     ]
   }
 }

@@ -14,7 +14,10 @@ from collections import defaultdict
 from pathlib import Path
 
 _ROOT = Path(__file__).parent.parent
+sys.path.insert(0, str(_ROOT))
 _INCOMING = _ROOT / "state" / "incoming"
+
+from lib import item_cache
 
 
 def _load_events(pattern: str, include_processed: bool) -> list[dict]:
@@ -48,6 +51,7 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="列出闲鱼和 TG 未处理事件")
     parser.add_argument("--all",       action="store_true", help="包含已处理事件")
     parser.add_argument("--mark-read", action="store_true", help="列出后标记为已处理")
+    parser.add_argument("--no-titles", action="store_true", help="不查商品标题（更快，离线可用）")
     args = parser.parse_args()
 
     chat_events = _load_events("chat_*.json", args.all)
@@ -72,7 +76,12 @@ def main() -> None:
                 ""
             )
             item_id = evs[0].get("item_id", "")
-            print(f"\n会话 {chat_id}  买家={buyer}（uid={buyer_uid}）  商品={item_id}  共 {len(evs)} 条")
+            item_label = item_id
+            if item_id and not args.no_titles:
+                title = item_cache.get_title(item_id)
+                if title:
+                    item_label = f"{item_id}（{title}）"
+            print(f"\n会话 {chat_id}  买家={buyer}（uid={buyer_uid}）  商品={item_label}  共 {len(evs)} 条")
             for ev in evs:
                 mark      = "[已读]" if ev.get("processed") else "[新]  "
                 ts        = ev.get("ts", "")[:16]

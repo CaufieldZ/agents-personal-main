@@ -3,11 +3,12 @@
 
 用法：
   python3 scripts/update_xianyu_ledger.py
-  python3 scripts/update_xianyu_ledger.py --orders-dir state/orders --out xianyu/ledger.xlsx
+  python3 scripts/update_xianyu_ledger.py --out xianyu/ledger.xlsx
 """
 
 import argparse
 import sys
+import unicodedata
 from pathlib import Path
 
 _ROOT = Path(__file__).parent.parent
@@ -20,195 +21,253 @@ from openpyxl.utils import get_column_letter
 
 DEFAULT_OUT = Path("xianyu/ledger.xlsx")
 
-# 列定义：(header, min_width, max_width, align)
+# (header, min_width, max_width, align)
 COLUMNS = [
-    ("日期",       11, 11, "center"),
-    ("订单号",     18, 24, "left"),
-    ("商品",       22, 36, "left"),
-    ("买家",       12, 18, "left"),
-    ("成交价",      9,  9, "right"),
-    ("携程价",      9,  9, "right"),
-    ("利润",        8,  8, "right"),
-    ("状态",        9,  9, "center"),
-    ("关联PNR",    14, 20, "left"),
-    ("备注",       16, 32, "left"),
+    ("出发日",   12, 12, "left"),
+    ("行程",     28, 48, "left"),
+    ("人",        4,  4, "right"),
+    ("买家",     14, 22, "left"),
+    ("成交价",   10, 10, "right"),
+    ("携程价",   10, 10, "right"),
+    ("利润",     10, 10, "right"),
+    ("状态",     10, 10, "left"),
+    ("PNR",      14, 26, "left"),
+    ("备注",     20, 44, "left"),
 ]
 
-STATUS_COLORS = {
-    "已收货":   ("D6F4E4", "1A7A45"),
-    "已发回执": ("D6F4E4", "1A7A45"),
-    "已出票":   ("D6F4E4", "1A7A45"),
-    "已付款":   ("FFF3CC", "8A6000"),
-    "已发单":   ("FFF3CC", "8A6000"),
-    "交易关闭": ("FCE4E4", "9B1C1C"),
+COL_DEPART, COL_ROUTE, COL_PAX, COL_BUYER, COL_SALE, \
+COL_CTRIP, COL_PROFIT, COL_STATUS, COL_PNR, COL_NOTE = range(1, 11)
+
+STATUS_FG = {
+    "已收货":   "1A7A45",
+    "已发回执": "1A7A45",
+    "已出票":   "1A7A45",
+    "已付款":   "B07A00",
+    "已发单":   "B07A00",
+    "已报价":   "5C6470",
+    "询价":     "5C6470",
+    "交易关闭": "9B1C1C",
 }
 
-C_HEADER_BG  = "1C3557"
-C_HEADER_FG  = "FFFFFF"
-C_ALT_ROW    = "F4F7FB"
-C_TOTAL_BG   = "E8EEF6"
-C_PROFIT_POS = "1A7A45"
-C_PROFIT_NEG = "C0392B"
-C_BORDER     = "D0D8E4"
+TYPE_LABEL = {"flight": "机票", "hotel": "酒店", "rail": "铁路"}
+
+C_TEXT          = "1F2328"
+C_MUTED         = "6E7781"
+C_LINK          = "0969DA"
+C_HEADER_BG     = "F6F8FA"
+C_BORDER        = "E5E7EB"
+C_BORDER_STRONG = "D0D8E4"
+C_PROFIT_POS    = "1A7A45"
+C_PROFIT_NEG    = "C0392B"
 
 MONEY_FMT = '¥#,##0'
 DATE_FMT  = 'yyyy-mm-dd'
 
-# 实际下单成本 = 携程价 × COST_RATIO
-COST_RATIO = 0.4
-
-# 利润仅在订单已交付（PNR/取票码/入住码已发回执，或买家已收货）后才计入
+COST_RATIO      = 0.4
 PROFIT_STATUSES = {"已发回执", "已收货"}
-HEADER_ROW_H = 22
-DATA_ROW_H   = 18
-TOTAL_ROW_H  = 20
+
+HEADER_ROW_H = 28
+DATA_ROW_H   = 26
+TOTAL_ROW_H  = 28
+
+FONT_CN = "PingFang SC"
 
 
-def _side(color=C_BORDER):
-    return Side(border_style="thin", color=color)
+def _bottom_border(color=C_BORDER, weight="thin"):
+    return Border(bottom=Side(border_style=weight, color=color))
 
 
-def _border(color=C_BORDER):
-    s = _side(color)
-    return Border(left=s, right=s, top=s, bottom=s)
+def _top_border(color=C_BORDER_STRONG, weight="medium"):
+    return Border(top=Side(border_style=weight, color=color))
 
 
 def _fill(hex_color):
     return PatternFill("solid", fgColor=hex_color)
 
 
-def _font(bold=False, color="000000", size=10):
-    return Font(name="PingFang SC", bold=bold, color=color, size=size)
+def _font(bold=False, color=C_TEXT, size=12, underline=None):
+    return Font(name=FONT_CN, bold=bold, color=color, size=size, underline=underline)
 
 
-def _order_date(order: dict) -> str:
-    tl = order.get("timeline", [])
-    if tl:
-        return tl[0].get("at", "")[:10]
-    return ""
+def _cjk_width(s) -> float:
+    w = 0.0
+    for ch in str(s):
+        w += 2.0 if unicodedata.east_asian_width(ch) in ("F", "W") else 1.0
+    return w
 
 
-def order_to_row(o: dict) -> list:
-    pricing  = o.get("pricing", {})
-    buyer    = o.get("buyer", {})
-    item     = o.get("item", {})
-    ff       = o.get("fulfillment", {})
-    notes    = o.get("notes", [])
+def _trip_route(o: dict) -> str:
+    item      = o.get("item", {}) or {}
+    trip      = o.get("trip", {}) or {}
+    item_type = item.get("type", "")
+    type_tag  = TYPE_LABEL.get(item_type, item_type or "")
+    prefix    = f"[{type_tag}] " if type_tag else ""
 
-    sale     = pricing.get("quoted_price") or 0
-    ctrip    = pricing.get("ctrip_price") or 0
-    status   = o.get("status", "")
-    if status in PROFIT_STATUSES and sale and ctrip:
-        profit = round(sale - ctrip * COST_RATIO, 2)
+    if item_type == "rail" and trip.get("route"):
+        body = trip["route"]
+    elif item_type == "hotel":
+        body = trip.get("destination") or trip.get("origin") or item.get("summary", "")
     else:
-        profit = ""
+        def _fmt(name: str, code: str) -> str:
+            if name and code: return f"{name} {code}"
+            return name or code or ""
+        left  = _fmt(trip.get("origin", ""),      trip.get("origin_code", ""))
+        right = _fmt(trip.get("destination", ""), trip.get("destination_code", ""))
+        if left and right:
+            body = f"{left} → {right}"
+        elif left or right:
+            body = left or right
+        else:
+            body = item.get("summary", "")
+
+    suffix = ""
+    if item_type == "flight":
+        suffix = " · 往" if trip.get("is_round_trip") else " · 单"
+
+    return f"{prefix}{body}{suffix}"
+
+
+def order_to_row(o: dict) -> tuple[list, list[str]]:
+    """返回 (单元格值列表, 附件相对路径列表)。"""
+    pricing = o.get("pricing", {}) or {}
+    buyer   = o.get("buyer", {})   or {}
+    trip    = o.get("trip", {})    or {}
+    ff      = o.get("fulfillment", {}) or {}
+    notes   = o.get("notes", []) or []
+
+    sale   = pricing.get("quoted_price") or 0
+    ctrip  = pricing.get("ctrip_price")  or 0
+    status = o.get("status", "")
+    profit = round(sale - ctrip * COST_RATIO, 2) if (status in PROFIT_STATUSES and sale and ctrip) else ""
+
+    pax_n = trip.get("passenger_count", 0) or 0
+    attachments = ff.get("supplier_attachments", []) if isinstance(ff, dict) else []
 
     note_str = "；".join(notes) if isinstance(notes, list) else str(notes or "")
 
-    return [
-        _order_date(o),
-        o.get("xianyu_order_id", ""),
-        item.get("summary", "") if isinstance(item, dict) else str(item),
+    row = [
+        trip.get("departure_date", ""),
+        _trip_route(o),
+        pax_n or "",
         buyer.get("nick", "") if isinstance(buyer, dict) else str(buyer),
         sale or "",
         ctrip or "",
         profit,
-        o.get("status", ""),
+        status,
         ff.get("supplier_pnr", "") if isinstance(ff, dict) else "",
         note_str,
     ]
+    return row, attachments
 
 
-def write_ledger(rows: list[list], out_path: Path) -> float:
+def _style_data_cell(cell, c_idx: int, value, status: str, attachments: list[str]) -> None:
+    _, *_, align = COLUMNS[c_idx - 1]
+    cell.border    = _bottom_border()
+    cell.alignment = Alignment(horizontal=align, vertical="center", wrap_text=(c_idx == COL_NOTE))
+
+    if c_idx == COL_DEPART:
+        cell.number_format = DATE_FMT
+        cell.font = _font(color=C_MUTED, size=11)
+    elif c_idx == COL_PNR:
+        pnr_text = (value or "").strip() if isinstance(value, str) else ""
+        if attachments:
+            first_abs = (_ROOT / attachments[0]).resolve()
+            tag = "[图]" if len(attachments) == 1 else f"[图 ×{len(attachments)}]"
+            cell.value = f"{pnr_text} {tag}".strip()
+            cell.hyperlink = f"file://{first_abs}"
+            cell.font = _font(color=C_LINK, size=11, underline="single")
+        elif pnr_text:
+            cell.font = _font(color=C_MUTED, size=11)
+        else:
+            cell.value = ""
+            cell.font = _font(color=C_MUTED, size=11)
+    elif c_idx in (COL_SALE, COL_CTRIP):
+        cell.number_format = MONEY_FMT
+        cell.font = _font(size=12)
+    elif c_idx == COL_PROFIT:
+        if isinstance(value, (int, float)):
+            color = C_PROFIT_POS if value >= 0 else C_PROFIT_NEG
+            cell.number_format = MONEY_FMT
+            cell.font = _font(color=color, size=12)
+        else:
+            cell.value = "—" if value == "" else value
+            cell.font = _font(color=C_MUTED, size=11)
+            cell.alignment = Alignment(horizontal="right", vertical="center")
+    elif c_idx == COL_STATUS:
+        cell.font = _font(bold=True, color=STATUS_FG.get(status, C_MUTED), size=11)
+    elif c_idx == COL_NOTE:
+        cell.font = _font(color=C_MUTED, size=11)
+    else:
+        cell.font = _font(size=12)
+
+
+def write_ledger(orders: list[dict], out_path: Path) -> float:
     wb = Workbook()
     ws = wb.active
     ws.title = "闲鱼台账"
     ws.sheet_view.showGridLines = False
 
+    rows_with_att = [order_to_row(o) for o in orders]
     n_cols = len(COLUMNS)
 
     ws.row_dimensions[1].height = HEADER_ROW_H
-    for col_idx, (header, *_) in enumerate(COLUMNS, 1):
-        cell = ws.cell(row=1, column=col_idx, value=header)
+    for c_idx, (header, *_) in enumerate(COLUMNS, 1):
+        cell = ws.cell(row=1, column=c_idx, value=header)
         cell.fill      = _fill(C_HEADER_BG)
-        cell.font      = _font(bold=True, color=C_HEADER_FG, size=10)
-        cell.alignment = Alignment(horizontal="center", vertical="center")
-        cell.border    = _border()
+        cell.font      = _font(bold=True, color=C_MUTED, size=11)
+        cell.alignment = Alignment(horizontal="left", vertical="center")
+        cell.border    = _bottom_border(C_BORDER_STRONG, "medium")
 
-    for r_idx, row in enumerate(rows, 2):
+    for r_idx, (row, attachments) in enumerate(rows_with_att, 2):
         ws.row_dimensions[r_idx].height = DATA_ROW_H
-        is_alt = (r_idx % 2 == 0)
-        status = row[7] if len(row) > 7 else ""
-
+        status = row[COL_STATUS - 1] if len(row) >= COL_STATUS else ""
         for c_idx, value in enumerate(row, 1):
-            _, min_w, max_w, align = COLUMNS[c_idx - 1]
             cell = ws.cell(row=r_idx, column=c_idx, value=value)
-            cell.border    = _border()
-            cell.alignment = Alignment(
-                horizontal=align, vertical="center", wrap_text=(c_idx == 10)
-            )
+            _style_data_cell(cell, c_idx, value, status, attachments)
 
-            if c_idx in (5, 6):
-                cell.number_format = MONEY_FMT
-                cell.font = _font(size=10)
-            elif c_idx == 7:
-                profit_val = value if isinstance(value, (int, float)) else 0
-                color = C_PROFIT_POS if profit_val >= 0 else C_PROFIT_NEG
-                cell.number_format = MONEY_FMT
-                cell.font = _font(bold=True, color=color, size=10)
-            elif c_idx == 1:
-                cell.number_format = DATE_FMT
-                cell.font = _font(size=10)
-            elif c_idx == 8:
-                bg, fg = STATUS_COLORS.get(status, ("EEEEEE", "555555"))
-                cell.fill = _fill(bg)
-                cell.font = _font(bold=True, color=fg, size=9)
-            else:
-                cell.font = _font(size=10)
-
-            if is_alt and c_idx not in (7, 8):
-                if cell.fill.fgColor.rgb in ("00000000", "FFFFFFFF", "00FFFFFF"):
-                    cell.fill = _fill(C_ALT_ROW)
-
-    total_row = len(rows) + 2
+    total_row = len(rows_with_att) + 2
     ws.row_dimensions[total_row].height = TOTAL_ROW_H
 
-    total_sale   = sum(r[4] for r in rows if isinstance(r[4], (int, float)))
-    total_cost   = sum(r[5] for r in rows if isinstance(r[5], (int, float)))
-    total_profit = sum(r[6] for r in rows if isinstance(r[6], (int, float)))
+    rows_only = [r for r, _ in rows_with_att]
+    total_sale   = sum(r[COL_SALE - 1]   for r in rows_only if isinstance(r[COL_SALE - 1],   (int, float)))
+    total_cost   = sum(r[COL_CTRIP - 1]  for r in rows_only if isinstance(r[COL_CTRIP - 1],  (int, float)))
+    total_profit = sum(r[COL_PROFIT - 1] for r in rows_only if isinstance(r[COL_PROFIT - 1], (int, float)))
 
-    totals = {1: f"共 {len(rows)} 笔", 5: total_sale, 6: total_cost, 7: total_profit}
+    totals = {
+        COL_DEPART: f"共 {len(rows_only)} 笔",
+        COL_SALE:   total_sale,
+        COL_CTRIP:  total_cost,
+        COL_PROFIT: total_profit,
+    }
 
     for c_idx in range(1, n_cols + 1):
-        value = totals.get(c_idx, "")
-        cell = ws.cell(row=total_row, column=c_idx, value=value)
-        cell.fill      = _fill(C_TOTAL_BG)
-        cell.border    = _border(C_HEADER_BG)
+        cell = ws.cell(row=total_row, column=c_idx, value=totals.get(c_idx, ""))
+        cell.border    = _top_border()
         cell.alignment = Alignment(
-            horizontal="right" if c_idx in (5, 6, 7) else "left",
+            horizontal="right" if c_idx in (COL_SALE, COL_CTRIP, COL_PROFIT) else "left",
             vertical="center",
         )
-        if c_idx in (5, 6):
+        if c_idx in (COL_SALE, COL_CTRIP):
             cell.number_format = MONEY_FMT
-            cell.font = _font(bold=True, size=10)
-        elif c_idx == 7:
+            cell.font = _font(bold=True, size=12)
+        elif c_idx == COL_PROFIT:
             color = C_PROFIT_POS if total_profit >= 0 else C_PROFIT_NEG
             cell.number_format = MONEY_FMT
-            cell.font = _font(bold=True, color=color, size=10)
+            cell.font = _font(bold=True, color=color, size=12)
         else:
-            cell.font = _font(bold=True, size=10)
+            cell.font = _font(bold=True, color=C_MUTED, size=11)
 
-    for col_idx, (_, min_w, max_w, _) in enumerate(COLUMNS, 1):
-        letter = get_column_letter(col_idx)
-        best = min_w
+    for c_idx, (_, min_w, max_w, _) in enumerate(COLUMNS, 1):
+        letter = get_column_letter(c_idx)
+        best = float(min_w)
         for r in range(1, total_row + 1):
-            v = ws.cell(row=r, column=col_idx).value
-            if v:
-                best = max(best, min(len(str(v)) * 1.5, max_w))
+            v = ws.cell(row=r, column=c_idx).value
+            if v is None or v == "":
+                continue
+            best = max(best, _cjk_width(v) * 1.2 + 2)
         ws.column_dimensions[letter].width = max(min_w, min(best, max_w))
 
     ws.freeze_panes = "A2"
-    ws.auto_filter.ref = f"A1:{get_column_letter(n_cols)}{len(rows) + 1}"
 
     out_path.parent.mkdir(parents=True, exist_ok=True)
     wb.save(out_path)
@@ -217,10 +276,9 @@ def write_ledger(rows: list[list], out_path: Path) -> float:
 
 def build_ledger(out_path: Path) -> None:
     orders = list_all()
-    rows = [order_to_row(o) for o in orders]
-    total_profit = write_ledger(rows, out_path)
+    total_profit = write_ledger(orders, out_path)
     print(f"台账文件：{out_path}")
-    print(f"订单数量：{len(rows)}  累计利润：¥{total_profit:.0f}")
+    print(f"订单数量：{len(orders)}  累计利润：¥{total_profit:.0f}")
 
 
 def parse_args() -> argparse.Namespace:

@@ -49,6 +49,7 @@ def main() -> None:
     parser.add_argument("--use-quoted-text", action="store_true",
                         help="发订单 pricing.quoted_text（quote.py 生成的话术），需配 --order-id")
     parser.add_argument("--confirm", action="store_true", help="加此参数才真发，否则只打印")
+    parser.add_argument("--no-delay", action="store_true", help="跳过模拟人工输入延迟")
     args = parser.parse_args()
 
     if args.use_quoted_text:
@@ -74,7 +75,7 @@ def main() -> None:
 
     from lib.xianyu_client import send_message
     try:
-        send_message(chat_id, to_uid, args.text)
+        send_message(chat_id, to_uid, args.text, humanize=not args.no_delay)
         print("发送成功")
     except Exception as e:
         print(f"发送失败：{e}")
