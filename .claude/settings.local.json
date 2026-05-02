@@ -1,0 +1,32 @@
+{
+  "permissions": {
+    "allow": [
+      "WebSearch",
+      "Bash(.venv/bin/pip list *)",
+      "Bash(.venv/bin/pip install *)",
+      "Bash(pip3 list *)",
+      "Bash(pip3 install *)",
+      "Bash(timeout 12 python3 scripts/event_bot/bot.py)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" --connect-timeout 5 \"https://api.binance.com/api/v3/ping\")",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" --connect-timeout 5 \"https://api1.binance.com/api/v3/ping\")",
+      "Bash(python3 -c \"import websockets; print\\(websockets.__version__\\)\")",
+      "Bash(python3 -c ' *)",
+      "Bash(python3 -c \"import py_compile; py_compile.compile\\('scripts/event_bot/bot.py', doraise=True\\); print\\('OK'\\)\")",
+      "Bash(python3 -c \"import requests; print\\('OK'\\)\")",
+      "Bash(python3 scripts/event_bot/backtest.py --days 3)",
+      "Bash(python3 scripts/event_bot/backtest.py --days 7)",
+      "Bash(python3 scripts/event_bot/backtest.py --days 5 --optimize)",
+      "Bash(python3 scripts/event_bot/backtest.py --days 5 --optimize --apply)",
+      "Bash(nohup python3 *)",
+      "Bash(echo \"PID: $!\")",
+      "Bash(kill 34862)",
+      "Bash(python3 -c \"import py_compile; py_compile.compile\\('scripts/event_bot/backtest.py', doraise=True\\); print\\('backtest OK'\\)\")",
+      "WebFetch(domain:www.binance.com)",
+      "Bash(python3 -m py_compile /Users/felix/agents-personal-main/scripts/event_bot/bot.py)",
+      "Bash(python3 backtest.py --days 14 --optimize)",
+      "Bash(python3 walkforward.py --days 14)",
+      "Bash(kill 68488)",
+      "Bash(export HTTPS_PROXY=http://127.0.0.1:7897)"
+    ]
+  }
+}

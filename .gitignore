@@ -1,0 +1,18 @@
+*.DS_Store
+.venv/
+.env
+__pycache__/
+tasks/
+
+# 业务数据 / PII（买家信息、私信、订单、台账、备忘、商品文案）
+state/
+xianyu/
+notes/
+listings/
+
+# 凭证 / 密钥
+config/
+scripts/event_bot/config.py
+
+# 日志
+logs/
