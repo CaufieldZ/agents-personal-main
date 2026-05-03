@@ -16,7 +16,7 @@ from datetime import datetime
 from itertools import product
 
 import config as cfg
-from backtest import fetch_range, run_backtest, print_result, INTERVAL_MIN
+from backtest import fetch_range, run_backtest, print_result, get_optimize_grid, INTERVAL_MIN
 
 
 def split_in_half(candles):
@@ -25,28 +25,8 @@ def split_in_half(candles):
 
 
 def grid_search(candles, interval='1m'):
-    """精简版网格搜索，只改最影响结果的参数。"""
-    # Binance 事件合约只支持 10/30/60/1440 min,grid 锁定可下单时长
-    if interval == '5m':
-        grid = {
-            'RANGE_LOOKBACK': [12, 18, 24, 36],
-            'RANGE_MAX_WIDTH': [0.006, 0.008, 0.010, 0.012, 0.015],
-            'WICK_BREACH_RATIO': [0.05, 0.10, 0.15, 0.20],
-            'MOMENTUM_MAX_SLOPE': [0.0002, 0.0003, 0.0005, 0.001],
-            'VOLUME_MIN_RATIO': [0.0],
-            'SIGNAL_COOLDOWN': [0],
-            'CONTRACT_DURATION': [10, 30, 60],
-        }
-    else:
-        grid = {
-            'RANGE_LOOKBACK': [20, 30, 40],
-            'RANGE_MAX_WIDTH': [0.006, 0.008, 0.010, 0.012, 0.015],
-            'WICK_BREACH_RATIO': [0.05, 0.10, 0.15, 0.20],
-            'MOMENTUM_MAX_SLOPE': [0.0002, 0.0003, 0.0005, 0.001],
-            'VOLUME_MIN_RATIO': [1.0, 1.2, 1.5, 2.0],
-            'SIGNAL_COOLDOWN': [60, 120, 300],
-            'CONTRACT_DURATION': [10, 30, 60],
-        }
+    """精简版网格搜索，直接从 backtest 拿统一 grid。"""
+    grid = get_optimize_grid(interval)
     keys = list(grid.keys())
     best_result, best_params = None, None
     total = 1

@@ -27,7 +27,7 @@ from config import *
 from strategy import (
     Candle, RangeStatus, WickEvent,
     RangeDetector, WickDetector,
-    momentum_ok, volume_ok, is_trading_hours, is_trading_hours_at,
+    momentum_ok, momentum_slope, volume_ok, is_trading_hours, is_trading_hours_at,
 )
 
 # 代理配置
@@ -123,7 +123,7 @@ class BinanceStream:
             with urllib.request.urlopen(req, timeout=10) as resp:
                 data = json.loads(resp.read())
             for k in data:
-                candles.append(Candle(float(k[1]), float(k[2]), float(k[3]), float(k[4]), k[0]))
+                candles.append(Candle(float(k[1]), float(k[2]), float(k[3]), float(k[4]), k[0], float(k[5])))
         except Exception as e:
             print(f"[!] REST 获取历史失败: {e}")
         return candles
@@ -768,21 +768,15 @@ async def main():
         tg_send(fmt_tg_signal(sig))
 
         # 构建决策上下文
+        slp = momentum_slope(rdet)
         items = list(rdet.buf)
-        y_mean = sum(x.close for x in items) / len(items)
-        n = len(items); x_mean = (n - 1) / 2
-        den = sum((i - x_mean) ** 2 for i in range(n))
-        slope = 0.0
-        if den > 0 and y_mean > 0:
-            slope = abs(sum((i - x_mean) * (x.close - y_mean)
-                            for i, x in enumerate(items)) / den / y_mean)
         avg_vol = sum(x.vol for x in items) / len(items) if items else 0
         ctx = {
             'range_width': r.width_pct,
             'wick_breach': w.breach_pct,
             'wick_revert': 0,
             'volume_ratio': (c.vol / avg_vol) if avg_vol > 0 else 0,
-            'momentum_slope': slope,
+            'momentum_slope': abs(slp) if slp else 0,
             'hour': datetime.now().hour,
             'confidence': sig.confidence,
         }

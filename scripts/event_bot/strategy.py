@@ -92,20 +92,27 @@ def volume_ok(c: Candle, recent: list, min_ratio: float) -> bool:
     return c.vol >= avg * min_ratio
 
 
-def momentum_ok(rdet: RangeDetector, max_slope: float) -> bool:
-    """检查区间内归一化价格趋势斜率是否在允许范围。"""
+def momentum_slope(rdet: RangeDetector) -> Optional[float]:
+    """计算区间内归一化价格趋势斜率，数据不足返回 None。"""
     items = list(rdet.buf)
     if len(items) < 10:
-        return True
+        return None
     n = len(items)
     x_mean = (n - 1) / 2
     y_mean = sum(c.close for c in items) / n
     num = sum((i - x_mean) * (c.close - y_mean) for i, c in enumerate(items))
     den = sum((i - x_mean) ** 2 for i in range(n))
     if den == 0 or y_mean == 0:
+        return None
+    return num / den / y_mean
+
+
+def momentum_ok(rdet: RangeDetector, max_slope: float) -> bool:
+    """检查区间内归一化价格趋势斜率是否在允许范围。"""
+    s = momentum_slope(rdet)
+    if s is None:
         return True
-    slope = num / den / y_mean
-    return abs(slope) < max_slope
+    return abs(s) < max_slope
 
 
 # ─────────────────────────────────────────────────────────────
