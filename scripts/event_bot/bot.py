@@ -7,6 +7,7 @@ import hashlib
 import hmac
 import json
 import os
+import socket
 import sys
 import time
 from collections import deque
@@ -108,7 +109,7 @@ class BinanceStream:
         """测试 Binance API 连通性"""
         try:
             req = urllib.request.Request("https://api.binance.com/api/v3/ping")
-            with urllib.request.urlopen(req, timeout=5) as resp:
+            with urllib.request.urlopen(req, timeout=15) as resp:
                 return resp.status == 200 and resp.read() == b'{}'
         except Exception as e:
             print(f"[!] 连通性测试失败: {e}")
@@ -132,8 +133,22 @@ class BinanceStream:
         self._run = True
         while self._run:
             try:
-                async with websockets.connect(self.ws_url, ping_interval=20) as ws:
+                async with websockets.connect(
+                    self.ws_url,
+                    ping_interval=60,
+                    ping_timeout=30,
+                    close_timeout=5,
+                ) as ws:
                     self._ws = ws
+                    try:
+                        sock = ws.transport.get_extra_info('socket')
+                        if sock:
+                            sock.setsockopt(socket.SOL_SOCKET, socket.SO_KEEPALIVE, 1)
+                            sock.setsockopt(socket.IPPROTO_TCP, 0x10, 120)
+                            sock.setsockopt(socket.IPPROTO_TCP, 0x101, 30)
+                            sock.setsockopt(socket.IPPROTO_TCP, 0x102, 3)
+                    except Exception:
+                        pass
                     self._emit_status("connected")
                     async for msg in ws:
                         if not self._run:
@@ -698,13 +713,17 @@ def acquire_single_instance_lock():
     """flock 独占 logs/event_bot.pid,已有实例运行时直接退出"""
     pid_path = Path(__file__).resolve().parent.parent.parent / "logs" / "event_bot.pid"
     pid_path.parent.mkdir(parents=True, exist_ok=True)
-    f = open(pid_path, "w")
+    f = open(pid_path, "a+")
     try:
         fcntl.flock(f.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
     except BlockingIOError:
-        existing = pid_path.read_text().strip() if pid_path.exists() else "?"
+        f.seek(0)
+        existing = f.read().strip() or "?"
         print(f"[!] 已有 bot 实例运行 (pid={existing}),退出")
+        f.close()
         sys.exit(1)
+    f.seek(0)
+    f.truncate()
     f.write(str(os.getpid()))
     f.flush()
     return f  # 进程退出时 fd 关闭,锁自动释放
@@ -800,17 +819,22 @@ async def main():
 
     ws_seen_connected = False
     def on_status(s: str):
-        nonlocal ws_seen_connected
+        nonlocal ws_seen_connected, sig_count
         print(f"[ws] {s}")
         if s == "connected":
             if ws_seen_connected:
-                # 重连:补回中断期间错过的 K 线,避免 RangeDetector 用过期数据
+                # 重连:补回中断期间错过的 K 线 + 重放最后 3 根的信号检测
                 hist = stream.fetch_history()
                 if hist:
                     rdet.buf.clear()
-                    for c in hist:
+                    # 先只填充，不做检测
+                    for c in hist[:-3]:
                         rdet.add(c)
-                    print(f"[ws] 重连后补 {len(hist)} 根 {KLINE_INTERVAL} K线")
+                    # 最后 3 根走完整 on_kline，补做信号检测
+                    for c in hist[-3:]:
+                        on_kline(c)
+                    print(f"[ws] 重连后补 {len(hist)} 根 {KLINE_INTERVAL} K线  "
+                          f"(信号累计 {sig_count})")
             ws_seen_connected = True
 
     stream.on_kline = on_kline
