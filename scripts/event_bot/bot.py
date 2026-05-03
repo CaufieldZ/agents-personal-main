@@ -2,6 +2,7 @@
 """震荡区间接针策略——BTC 实时监测 + 接针信号输出"""
 
 import asyncio
+import fcntl
 import hashlib
 import hmac
 import json
@@ -26,7 +27,7 @@ from config import *
 from strategy import (
     Candle, RangeStatus, WickEvent,
     RangeDetector, WickDetector,
-    momentum_ok, is_trading_hours, is_trading_hours_at,
+    momentum_ok, volume_ok, is_trading_hours, is_trading_hours_at,
 )
 
 # 代理配置
@@ -79,9 +80,11 @@ class SignalEngine:
 
     def _confidence(self, r: RangeStatus, w: WickEvent) -> str:
         # 1m 模式无 revert 维度，剩余两维重新分配权重
+        # breach 占区间宽度的比例越大置信度越高（3 倍阈值视为饱和）
         s = 0.0
         s += (1 - r.width_pct / RANGE_MAX_WIDTH) * 0.4
-        s += min(w.breach_pct / (WICK_MIN_BREACH * 3), 1) * 0.6
+        breach_to_width = w.breach_pct / r.width_pct if r.width_pct > 0 else 0
+        s += min(breach_to_width / (WICK_BREACH_RATIO * 3), 1) * 0.6
         return '高' if s >= 0.7 else '中' if s >= 0.4 else '低'
 
 # ═══════════════════════════════════════════════════════════
@@ -91,12 +94,14 @@ class SignalEngine:
 class BinanceStream:
     def __init__(self):
         sym = SYMBOL.lower()
-        self.ws_url = f"wss://stream.binance.com:9443/stream?streams={sym}@kline_1m/{sym}@kline_1s"
-        self.rest_url = f"https://api.binance.com/api/v3/klines?symbol={SYMBOL.upper()}&interval=1m&limit={RANGE_LOOKBACK + 10}"
+        self.kline_stream = f"{sym}@kline_{KLINE_INTERVAL}"
+        self.ws_url = f"wss://stream.binance.com:9443/stream?streams={self.kline_stream}/{sym}@kline_1s"
+        self.rest_url = (f"https://api.binance.com/api/v3/klines?symbol={SYMBOL.upper()}"
+                         f"&interval={KLINE_INTERVAL}&limit={RANGE_LOOKBACK + 10}")
         self._ws = None
         self._run = False
-        self.on_1m = None
-        self.on_1s = None
+        self.on_kline = None    # 主周期 K 线收盘回调
+        self.on_1s = None       # 1s 流（用于结算 + 延迟下单对齐"下一秒指数价"）
         self.on_status = None
 
     def test_connectivity(self) -> bool:
@@ -150,9 +155,9 @@ class BinanceStream:
             c = Candle(float(k['o']), float(k['h']), float(k['l']), float(k['c']),
                        k['t'], float(k.get('v', 0)))
             stream = d.get('stream', '')
-            if '1m' in stream and k.get('x') and self.on_1m:
-                self.on_1m(c)
-            elif '1s' in stream and self.on_1s:
+            if stream.endswith(f"@kline_{KLINE_INTERVAL}") and k.get('x') and self.on_kline:
+                self.on_kline(c)
+            elif stream.endswith("@kline_1s") and self.on_1s:
                 self.on_1s(c)
         except Exception:
             pass
@@ -170,8 +175,11 @@ class BinanceStream:
 # 输出
 # ═══════════════════════════════════════════════════════════
 
-BOLD = '\033[1m'; RED = '\033[91m'; GREEN = '\033[92m'
-YELLOW = '\033[93m'; CYAN = '\033[96m'; RST = '\033[0m'
+if sys.stdout.isatty():
+    BOLD = '\033[1m'; RED = '\033[91m'; GREEN = '\033[92m'
+    YELLOW = '\033[93m'; CYAN = '\033[96m'; RST = '\033[0m'
+else:
+    BOLD = RED = GREEN = YELLOW = CYAN = RST = ''
 
 def fmt_signal(sig: Signal):
     arrow = f"{GREEN}📈 CALL 看涨{RST}" if sig.direction == 'CALL' else f"{RED}📉 PUT 看跌{RST}"
@@ -214,7 +222,7 @@ def fmt_status(price: float, r: RangeStatus, n_sig: int, executor=None, balance=
         risk = executor.risk_status()
         if risk:
             extra += f" | {risk}"
-    print(f"\r[{ts}] {SYMBOL.upper()} {price:.1f} | {rng} | 信号: {n_sig}{extra}", end='', flush=True)
+    print(f"[{ts}] {SYMBOL.upper()} {price:.1f} | {rng} | 信号: {n_sig}{extra}", flush=True)
 
 def log_signal(sig: Signal):
     try:
@@ -313,7 +321,7 @@ class OrderExecutor:
         wb = avg(wins, 'wick_breach')
         lb = avg(losses, 'wick_breach')
         if lb < wb * 0.7:
-            findings.append(f"输单针幅偏小 ({lb*100:.2f}% vs {wb*100:.2f}%) → 提高 WICK_MIN_BREACH")
+            findings.append(f"输单针幅偏小 ({lb*100:.2f}% vs {wb*100:.2f}%) → 提高 WICK_BREACH_RATIO")
 
         # 对比动量
         wm = avg(wins, 'momentum_slope')
@@ -375,11 +383,18 @@ class OrderExecutor:
                 print(f"  {RED}[!] 下单失败: {e}{RST}")
                 return False
 
-            self._order_times.append(time.time())
             if status != 200:
                 print(f"  {RED}[!] 下单返回 {status}: {body}{RST}")
                 return False
+            try:
+                resp_json = json.loads(body)
+                if resp_json.get('code') not in (0, '0', None) or resp_json.get('success') is False:
+                    print(f"  {RED}[!] 下单业务失败: {body}{RST}")
+                    return False
+            except json.JSONDecodeError:
+                pass
 
+            self._order_times.append(time.time())
             print(f"  {GREEN}[✓] 已下单 {side} {AMOUNT}U  "
                   f"{SYMBOL.upper()} {CONTRACT_DURATION}min  入场价 {price:.1f}{RST}")
         else:
@@ -515,8 +530,8 @@ class BinanceBalance:
             return 0.0
 
         try:
-            ts = int(now * 1000)
-            params = f"timestamp={ts}"
+            ts = int(time.time() * 1000)
+            params = f"timestamp={ts}&recvWindow=10000"
             sig = hmac.new(
                 BINANCE_API_SECRET.encode(), params.encode(), hashlib.sha256
             ).hexdigest()
@@ -679,10 +694,27 @@ class TgListener:
 # 主循环
 # ═══════════════════════════════════════════════════════════
 
+def acquire_single_instance_lock():
+    """flock 独占 logs/event_bot.pid,已有实例运行时直接退出"""
+    pid_path = Path(__file__).resolve().parent.parent.parent / "logs" / "event_bot.pid"
+    pid_path.parent.mkdir(parents=True, exist_ok=True)
+    f = open(pid_path, "w")
+    try:
+        fcntl.flock(f.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+    except BlockingIOError:
+        existing = pid_path.read_text().strip() if pid_path.exists() else "?"
+        print(f"[!] 已有 bot 实例运行 (pid={existing}),退出")
+        sys.exit(1)
+    f.write(str(os.getpid()))
+    f.flush()
+    return f  # 进程退出时 fd 关闭,锁自动释放
+
+
 async def main():
     print(f"{BOLD}震荡区间接针 Bot{RST}")
     print(f"品种: {SYMBOL.upper()}  |  区间最大宽度: {RANGE_MAX_WIDTH*100}%  |  "
-          f"针阈值: {WICK_MIN_BREACH*100}%  |  动量上限: {MOMENTUM_MAX_SLOPE}")
+          f"针阈值: 区间宽×{WICK_BREACH_RATIO}  |  量阈值: ×{VOLUME_MIN_RATIO}  |  "
+          f"动量上限: {MOMENTUM_MAX_SLOPE}")
     print(f"冷却: {SIGNAL_COOLDOWN}s  |  目标合约: {CONTRACT_DURATION}min  |  "
           f"信号日志: {LOG_FILE}")
     if AUTO_TRADE:
@@ -695,7 +727,7 @@ async def main():
 
     # 连通性
     rdet = RangeDetector(lookback=RANGE_LOOKBACK, max_width=RANGE_MAX_WIDTH)
-    wdet = WickDetector(min_breach=WICK_MIN_BREACH)
+    wdet = WickDetector(breach_ratio=WICK_BREACH_RATIO)
     eng = SignalEngine()
     executor = OrderExecutor()
     balance = BinanceBalance()
@@ -705,9 +737,9 @@ async def main():
         return
     price = 0.0
     sig_count = 0
-    pending_entry = None  # (sig, ctx, deadline_ts) — on_1m 触发后等下一次 on_1s 用其 close 做 entry
+    pending_entry = None  # (sig, ctx, deadline_ts) — on_kline 触发后等下一次 on_1s 用其 close 做 entry
 
-    def on_1m(c: Candle):
+    def on_kline(c: Candle):
         nonlocal price, sig_count, pending_entry
         price = c.close
         rdet.add(c)
@@ -721,6 +753,9 @@ async def main():
             return
         w = wdet.detect(c, r)
         if not w:
+            return
+        # 量能过滤：真扫盘性穿针通常伴随放量；无量穿针多为趋势启动早期
+        if not volume_ok(c, list(rdet.buf)[:-1], VOLUME_MIN_RATIO):
             return
 
         sig = eng.process(r, w, c.close)
@@ -769,10 +804,22 @@ async def main():
                 pending_entry = None
                 executor.execute(sig, c.close, ctx)
 
+    ws_seen_connected = False
     def on_status(s: str):
+        nonlocal ws_seen_connected
         print(f"[ws] {s}")
+        if s == "connected":
+            if ws_seen_connected:
+                # 重连:补回中断期间错过的 K 线,避免 RangeDetector 用过期数据
+                hist = stream.fetch_history()
+                if hist:
+                    rdet.buf.clear()
+                    for c in hist:
+                        rdet.add(c)
+                    print(f"[ws] 重连后补 {len(hist)} 根 {KLINE_INTERVAL} K线")
+            ws_seen_connected = True
 
-    stream.on_1m = on_1m
+    stream.on_kline = on_kline
     stream.on_1s = on_1s
     stream.on_status = on_status
 
@@ -781,7 +828,7 @@ async def main():
     hist = stream.fetch_history()
     for c in hist:
         rdet.add(c)
-    print(f"已加载 {len(hist)} 根 1min K线, 区间检测就绪\n")
+    print(f"已加载 {len(hist)} 根 {KLINE_INTERVAL} K线, 区间检测就绪\n")
 
     async def status_loop():
         last_daily = ""
@@ -843,4 +890,5 @@ async def main():
         await stream.stop()
 
 if __name__ == '__main__':
+    _lock = acquire_single_instance_lock()
     asyncio.run(main())

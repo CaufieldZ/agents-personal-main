@@ -2,5 +2,23 @@
   "env": {
     "HTTP_PROXY": "http://127.0.0.1:7897",
     "HTTPS_PROXY": "http://127.0.0.1:7897"
+  },
+  "permissions": {
+    "allow": [
+      "Bash(python3 scripts/event_bot/bot.py)",
+      "Bash(python3 scripts/event_bot/bot.py &)",
+      "Bash(python3 scripts/event_bot/backtest.py *)",
+      "Bash(python3 scripts/event_bot/walkforward.py *)",
+      "Bash(python3 -m py_compile *)",
+      "Bash(git push *)",
+      "Bash(git commit *)",
+      "Bash(git add *)",
+      "Bash(git remote *)",
+      "Bash(git config --local *)",
+      "Bash(kill *)",
+      "Bash(pip3 install *)",
+      "Bash(.venv/bin/pip install *)",
+      "Bash(.venv/bin/pip list *)"
+    ]
   }
 }

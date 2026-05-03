@@ -16,7 +16,7 @@ from datetime import datetime
 from itertools import product
 
 import config as cfg
-from backtest import fetch_range, run_backtest, print_result
+from backtest import fetch_range, run_backtest, print_result, INTERVAL_MIN
 
 
 def split_in_half(candles):
@@ -24,16 +24,29 @@ def split_in_half(candles):
     return candles[:mid], candles[mid:]
 
 
-def grid_search(candles):
+def grid_search(candles, interval='1m'):
     """精简版网格搜索，只改最影响结果的参数。"""
-    grid = {
-        'RANGE_LOOKBACK': [20, 30, 40],
-        'RANGE_MAX_WIDTH': [0.006, 0.008, 0.010, 0.012, 0.015],
-        'WICK_MIN_BREACH': [0.0005, 0.0010, 0.0015, 0.0020],
-        'MOMENTUM_MAX_SLOPE': [0.0002, 0.0003, 0.0005, 0.001],
-        'SIGNAL_COOLDOWN': [60, 120, 300],
-        'CONTRACT_DURATION': [10, 15, 30],
-    }
+    # Binance 事件合约只支持 10/30/60/1440 min,grid 锁定可下单时长
+    if interval == '5m':
+        grid = {
+            'RANGE_LOOKBACK': [12, 18, 24, 36],
+            'RANGE_MAX_WIDTH': [0.006, 0.008, 0.010, 0.012, 0.015],
+            'WICK_BREACH_RATIO': [0.05, 0.10, 0.15, 0.20],
+            'MOMENTUM_MAX_SLOPE': [0.0002, 0.0003, 0.0005, 0.001],
+            'VOLUME_MIN_RATIO': [0.0],
+            'SIGNAL_COOLDOWN': [0],
+            'CONTRACT_DURATION': [10, 30, 60],
+        }
+    else:
+        grid = {
+            'RANGE_LOOKBACK': [20, 30, 40],
+            'RANGE_MAX_WIDTH': [0.006, 0.008, 0.010, 0.012, 0.015],
+            'WICK_BREACH_RATIO': [0.05, 0.10, 0.15, 0.20],
+            'MOMENTUM_MAX_SLOPE': [0.0002, 0.0003, 0.0005, 0.001],
+            'VOLUME_MIN_RATIO': [1.0, 1.2, 1.5, 2.0],
+            'SIGNAL_COOLDOWN': [60, 120, 300],
+            'CONTRACT_DURATION': [10, 30, 60],
+        }
     keys = list(grid.keys())
     best_result, best_params = None, None
     total = 1
@@ -43,7 +56,7 @@ def grid_search(candles):
     tested = 0
     for values in product(*grid.values()):
         params = dict(zip(keys, values))
-        result = run_backtest(candles, params)
+        result = run_backtest(candles, params, interval=interval)
         tested += 1
         if tested % 200 == 0:
             print(f"    {tested}/{total}", flush=True)
@@ -58,11 +71,13 @@ def grid_search(candles):
 def main():
     p = argparse.ArgumentParser()
     p.add_argument('--days', type=int, default=14, help='总天数（前一半调参，后一半验证）')
+    p.add_argument('--interval', type=str, default='1m',
+                   choices=list(INTERVAL_MIN.keys()), help='K线间隔 (默认 1m)')
     args = p.parse_args()
 
-    print(f"=== Walk-Forward 验证 ({args.days} 天，五五开切） ===\n")
-    print(f"加载 BTCUSDT {args.days} 天 1m K 线...")
-    candles = fetch_range(cfg.SYMBOL, '1m', args.days)
+    print(f"=== Walk-Forward 验证 ({args.days} 天 {args.interval}，五五开切） ===\n")
+    print(f"加载 BTCUSDT {args.days} 天 {args.interval} K 线...")
+    candles = fetch_range(cfg.SYMBOL, args.interval, args.days)
     if len(candles) < 1000:
         print(f"[!] 数据不足: {len(candles)} 根")
         return
@@ -79,7 +94,7 @@ def main():
     print(f"验证段（out-of-sample）: {test_start} ~ {test_end}  ({len(test)} 根)\n")
 
     print("--- Step 1: 在调参段做网格搜索 ---")
-    best_params, in_sample_result = grid_search(train)
+    best_params, in_sample_result = grid_search(train, interval=args.interval)
     if not best_params:
         print("[!] 调参段没找到足够交易的参数组")
         return
@@ -87,7 +102,7 @@ def main():
     print_result(in_sample_result, "调参段最优结果（in-sample，可能过拟合）")
 
     print("\n--- Step 2: 拿这套参数去验证段实跑 ---")
-    out_sample_result = run_backtest(test, best_params)
+    out_sample_result = run_backtest(test, best_params, interval=args.interval)
     print_result(out_sample_result, "验证段结果（out-of-sample，真实考试）")
 
     # ─── 对比与判断 ───

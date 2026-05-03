@@ -1,0 +1,8 @@
+{
+  "_meta": {
+    "purpose": "钦钦的玩具登记 + wishlist。新加项跑 /toy 拉权威源,严禁脑补品牌。",
+    "fields": "name 类型/具体款 / category 大运动|精细动作|语言|认知|假装|感官 / age_range / status wishlist|owned|outgrown / safety_cert 3C|CE|ASTM / brand_model / source 推荐来源 URL / milestone 锚定的 CDC milestone / note",
+    "safety_baseline": "<3 岁: 无 <3.17cm 可拆零件; 无磁力珠; 无钮扣电池暴露; 无长绳带 >22cm; 电子玩具必须 3C 认证"
+  },
+  "items": []
+}

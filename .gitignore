@@ -10,6 +10,11 @@ xianyu/
 notes/
 listings/
 
+# 育儿模块 PII（孩子身份证号、家长电话、接种记录、体检数据）
+parenting/profile.json
+parenting/schedule/
+parenting/notes/
+
 # 凭证 / 密钥
 config/
 scripts/event_bot/config.py

@@ -13,7 +13,14 @@
 
 ## 通用工具
 
-`ffmpeg`（视频/音频）、`imagemagick`（图片批处理）、`python3` + `openpyxl`（数据/Excel）。脚本默认存 `scripts/`，下次复用。
+按需写脚本，存 `scripts/{av,img,office,text}/`，下次复用。
+
+- 音视频：`ffmpeg`（剪切 / 转码 / 抽帧 / 拼接）、`ffprobe`（探信息）
+- 图片：`imagemagick`（批处理 / 缩放 / 格式）、`pillow`（精细操作）
+- Office：`openpyxl`（xlsx）、`python-docx`（docx）、`python-pptx`（pptx）、`pypdf`（pdf 读，合并 / 拆分用 `scripts/pdf_merge`）
+- 文本：标准库够用，复杂结构上 `ripgrep` / `jq` / `yq`
+
+装包卡住先走代理：`export https_proxy=http://127.0.0.1:7897 http_proxy=http://127.0.0.1:7897`（pip 用 `--proxy http://127.0.0.1:7897`）。ImageMagick 7 命令是 `magick`，没有 `convert`。
 
 ## 目录
 

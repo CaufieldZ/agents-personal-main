@@ -58,23 +58,38 @@ class RangeDetector:
 
 
 class WickDetector:
-    """1m 蜡烛接针检测器。无状态、单根判定。"""
+    """1m 蜡烛接针检测器。无状态、单根判定。
 
-    def __init__(self, min_breach: float):
-        self.min_breach = min_breach
+    breach_ratio: 穿透幅度需 ≥ 区间宽度 × ratio（相对阈值，跨波动率环境一致）
+    """
+
+    def __init__(self, breach_ratio: float):
+        self.breach_ratio = breach_ratio
 
     def detect(self, c: Candle, r: RangeStatus) -> Optional[WickEvent]:
         if not r.consolidating:
             return None
-        # 下影针：穿透下沿且收盘回到区间内 → CALL
-        if c.low < r.low * (1 - self.min_breach) and c.close >= r.low:
+        min_breach = r.width_pct * self.breach_ratio
+        if c.low < r.low * (1 - min_breach) and c.close >= r.low:
             breach = (r.low - c.low) / r.low
             return WickEvent('down', c.low, breach, 0)
-        # 上影针：穿透上沿且收盘回到区间内 → PUT
-        if c.high > r.high * (1 + self.min_breach) and c.close <= r.high:
+        if c.high > r.high * (1 + min_breach) and c.close <= r.high:
             breach = (c.high - r.high) / r.high
             return WickEvent('up', c.high, breach, 0)
         return None
+
+
+def volume_ok(c: Candle, recent: list, min_ratio: float) -> bool:
+    """当前 candle 的成交量 ≥ recent 平均的 min_ratio 倍。
+
+    无 vol 数据(回测旧数据)或 recent 为空时放行,避免误杀。
+    """
+    if not recent or min_ratio <= 0:
+        return True
+    avg = sum(x.vol for x in recent) / len(recent)
+    if avg <= 0:
+        return True
+    return c.vol >= avg * min_ratio
 
 
 def momentum_ok(rdet: RangeDetector, max_slope: float) -> bool:

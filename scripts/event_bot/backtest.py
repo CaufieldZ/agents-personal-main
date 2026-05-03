@@ -21,7 +21,7 @@ from typing import Optional
 import config as cfg
 from strategy import (
     Candle, RangeDetector, WickDetector,
-    momentum_ok, is_trading_hours_at,
+    momentum_ok, volume_ok, is_trading_hours_at,
 )
 
 os.environ['HTTPS_PROXY'] = cfg.PROXY or os.environ.get('HTTPS_PROXY', '')
@@ -69,6 +69,9 @@ class BacktestResult:
 # 数据获取
 # ═══════════════════════════════════════════════════════════
 
+INTERVAL_MIN = {'1m': 1, '3m': 3, '5m': 5, '15m': 15, '30m': 30, '1h': 60}
+
+
 def fetch_klines(symbol: str, interval: str, limit: int = 1000,
                  end_time: Optional[int] = None) -> list[Candle]:
     """从 Binance REST 拉 K 线"""
@@ -84,7 +87,8 @@ def fetch_klines(symbol: str, interval: str, limit: int = 1000,
             data = json.loads(resp.read())
         for k in data:
             candles.append(Candle(
-                float(k[1]), float(k[2]), float(k[3]), float(k[4]), k[0]
+                float(k[1]), float(k[2]), float(k[3]), float(k[4]), k[0],
+                float(k[5])
             ))
     except Exception as e:
         print(f"[!] 获取 K 线失败: {e}")
@@ -93,19 +97,20 @@ def fetch_klines(symbol: str, interval: str, limit: int = 1000,
 
 def fetch_range(symbol: str, interval: str, days: int) -> list[Candle]:
     """分批拉取多天历史数据"""
+    bars_per_day = 1440 // INTERVAL_MIN[interval]
     all_candles = []
     now_ms = int(time.time() * 1000)
     remaining = days
     end = now_ms
 
     while remaining > 0:
-        batch = fetch_klines(symbol, interval, limit=min(1000, remaining * 1440), end_time=end)
+        batch = fetch_klines(symbol, interval, limit=min(1000, remaining * bars_per_day), end_time=end)
         if not batch:
             break
         all_candles = batch + all_candles
         end = batch[0].ts - 1
-        remaining = days - len(all_candles) // 1440  # ~1440 1m candles per day
-        if len(batch) < 500:
+        remaining = days - len(all_candles) // bars_per_day
+        if len(batch) < min(500, bars_per_day):
             break
         time.sleep(0.2)
 
@@ -124,16 +129,18 @@ def fetch_range(symbol: str, interval: str, days: int) -> list[Candle]:
 # 回测引擎
 # ═══════════════════════════════════════════════════════════
 
-def run_backtest(candles: list[Candle], params: dict) -> BacktestResult:
-    """1m K 线回测，复用 strategy.py 的判定逻辑。
+def run_backtest(candles: list[Candle], params: dict, interval: str = '1m') -> BacktestResult:
+    """K 线回测，复用 strategy.py 的判定逻辑。
 
     Entry = candles[i+1].open（≈ 触发后下一秒指数价）
-    Exit  = candles[i+1+contract_min].close
+    Exit  = candles[i+1+contract_bars].close,contract_bars 根据 interval 换算
     """
+    interval_min = INTERVAL_MIN[interval]
     rlookback = params.get('RANGE_LOOKBACK', cfg.RANGE_LOOKBACK)
     max_width = params.get('RANGE_MAX_WIDTH', cfg.RANGE_MAX_WIDTH)
-    min_breach = params.get('WICK_MIN_BREACH', cfg.WICK_MIN_BREACH)
+    breach_ratio = params.get('WICK_BREACH_RATIO', cfg.WICK_BREACH_RATIO)
     max_slope = params.get('MOMENTUM_MAX_SLOPE', cfg.MOMENTUM_MAX_SLOPE)
+    vol_min = params.get('VOLUME_MIN_RATIO', cfg.VOLUME_MIN_RATIO)
     cooldown = params.get('SIGNAL_COOLDOWN', cfg.SIGNAL_COOLDOWN)
     contract_min = params.get('CONTRACT_DURATION', cfg.CONTRACT_DURATION)
     amount = params.get('AMOUNT', cfg.AMOUNT)
@@ -142,7 +149,7 @@ def run_backtest(candles: list[Candle], params: dict) -> BacktestResult:
     block_end = params.get('TRADE_START_HOUR', cfg.TRADE_START_HOUR)
 
     rdet = RangeDetector(lookback=rlookback, max_width=max_width)
-    wdet = WickDetector(min_breach=min_breach)
+    wdet = WickDetector(breach_ratio=breach_ratio)
 
     result = BacktestResult(params=params)
     last_signal_ts = 0
@@ -166,12 +173,15 @@ def run_backtest(candles: list[Candle], params: dict) -> BacktestResult:
         w = wdet.detect(c, r)
         if w is None:
             continue
+        if not volume_ok(c, list(rdet.buf)[:-1], vol_min):
+            continue
         if i + 1 >= len(candles):
             continue
 
         direction = 'Long' if w.direction == 'down' else 'Short'
         entry_price = candles[i + 1].open
-        exit_idx = min(i + 1 + contract_min, len(candles) - 1)
+        contract_bars = max(1, contract_min // interval_min)
+        exit_idx = min(i + 1 + contract_bars, len(candles) - 1)
         exit_price = candles[exit_idx].close
 
         if direction == 'Long':
@@ -201,15 +211,17 @@ def run_backtest(candles: list[Candle], params: dict) -> BacktestResult:
 # 参数优化
 # ═══════════════════════════════════════════════════════════
 
-def optimize(candles: list[Candle]) -> dict:
+def optimize(candles: list[Candle], interval: str = '1m') -> dict:
     """网格搜索最优参数"""
+    # Binance 事件合约只支持 10/30/60/1440 min
     grid = {
         'RANGE_LOOKBACK': [20, 30, 40],
         'RANGE_MAX_WIDTH': [0.006, 0.008, 0.010, 0.012, 0.015],
-        'WICK_MIN_BREACH': [0.0005, 0.0010, 0.0015, 0.0020],
+        'WICK_BREACH_RATIO': [0.05, 0.10, 0.15, 0.20],
         'MOMENTUM_MAX_SLOPE': [0.0002, 0.0003, 0.0005, 0.001],
+        'VOLUME_MIN_RATIO': [1.0, 1.2, 1.5, 2.0],
         'SIGNAL_COOLDOWN': [60, 120, 300],
-        'CONTRACT_DURATION': [10, 15, 30],
+        'CONTRACT_DURATION': [10, 30, 60],
     }
 
     keys = list(grid.keys())
@@ -224,7 +236,7 @@ def optimize(candles: list[Candle]) -> dict:
 
     for values in product(*grid.values()):
         params = dict(zip(keys, values))
-        result = run_backtest(candles, params)
+        result = run_backtest(candles, params, interval=interval)
         tested += 1
 
         if tested % 50 == 0 or tested == 1:
@@ -276,8 +288,9 @@ def update_config(params: dict, dry_run: bool = True):
     mapping = {
         'RANGE_LOOKBACK': 'RANGE_LOOKBACK',
         'RANGE_MAX_WIDTH': 'RANGE_MAX_WIDTH',
-        'WICK_MIN_BREACH': 'WICK_MIN_BREACH',
+        'WICK_BREACH_RATIO': 'WICK_BREACH_RATIO',
         'MOMENTUM_MAX_SLOPE': 'MOMENTUM_MAX_SLOPE',
+        'VOLUME_MIN_RATIO': 'VOLUME_MIN_RATIO',
         'SIGNAL_COOLDOWN': 'SIGNAL_COOLDOWN',
         'CONTRACT_DURATION': 'CONTRACT_DURATION',
     }
@@ -320,19 +333,21 @@ if __name__ == '__main__':
     import argparse
     p = argparse.ArgumentParser()
     p.add_argument('--days', type=int, default=7, help='回测天数 (默认 7)')
+    p.add_argument('--interval', type=str, default='1m',
+                   choices=list(INTERVAL_MIN.keys()), help='K线间隔 (默认 1m)')
     p.add_argument('--optimize', action='store_true', help='网格搜索最优参数')
     p.add_argument('--apply', action='store_true', help='将最优参数写入 config.py')
     args = p.parse_args()
 
-    print(f"加载 {cfg.SYMBOL.upper()} 1m K 线 (最近 {args.days} 天)...")
-    candles = fetch_range(cfg.SYMBOL, '1m', args.days)
+    print(f"加载 {cfg.SYMBOL.upper()} {args.interval} K 线 (最近 {args.days} 天)...")
+    candles = fetch_range(cfg.SYMBOL, args.interval, args.days)
     print(f"获取 {len(candles)} 根 K 线  "
           f"({datetime.fromtimestamp(candles[0].ts/1000).strftime('%m-%d %H:%M')} ~ "
           f"{datetime.fromtimestamp(candles[-1].ts/1000).strftime('%m-%d %H:%M')})")
 
     if args.optimize:
         print("\n网格搜索最优参数...")
-        best_params, best_result = optimize(candles)
+        best_params, best_result = optimize(candles, interval=args.interval)
         if best_params:
             print_result(best_result, "最优参数回测")
             update_config(best_params, dry_run=not args.apply)
@@ -341,9 +356,10 @@ if __name__ == '__main__':
     else:
         # 默认参数回测
         params = {k: getattr(cfg, k) for k in
-                  ['RANGE_LOOKBACK', 'RANGE_MAX_WIDTH', 'WICK_MIN_BREACH',
+                  ['RANGE_LOOKBACK', 'RANGE_MAX_WIDTH', 'WICK_BREACH_RATIO',
+                   'MOMENTUM_MAX_SLOPE', 'VOLUME_MIN_RATIO',
                    'SIGNAL_COOLDOWN', 'CONTRACT_DURATION', 'AMOUNT']}
-        result = run_backtest(candles, params)
+        result = run_backtest(candles, params, interval=args.interval)
         print_result(result, "当前参数回测")
         if result.total > 0 and result.profit < 0:
             print("提示: 当前参数亏损，建议 --optimize 搜索更优参数\n")
