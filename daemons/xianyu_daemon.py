@@ -24,10 +24,23 @@ load_dotenv(_ROOT / ".env")
 
 from main import XianyuLive  # noqa: E402  (vendor/xianyu_live/main.py)
 
-_COOKIES_PATH = _ROOT / "config" / "xianyu_cookies.txt"
+_COOKIES_PATH       = _ROOT / "config" / "xianyu_cookies.txt"
+_COOKIE_DIRTY_FLAG  = _ROOT / "state" / "cookie_dirty.flag"
 
 
 def main() -> None:
+    if _COOKIE_DIRTY_FLAG.exists():
+        logger.error(
+            f"检测到 cookie_dirty flag：{_COOKIE_DIRTY_FLAG}\n"
+            "上一次运行触发风控，需要人工过滑块。流程：\n"
+            "  1. 浏览器登录闲鱼网页版，点消息触发滑块并通过\n"
+            "  2. 复制完整 Cookie（含 x5sec）到 config/xianyu_cookies.txt\n"
+            "  3. 删除 state/cookie_dirty.flag\n"
+            "  4. 重新启动守护进程"
+        )
+        # 退出 0 让 launchd KeepAlive=SuccessfulExit:false 不再重启
+        sys.exit(0)
+
     if not _COOKIES_PATH.exists():
         logger.error(f"Cookie 文件不存在：{_COOKIES_PATH}")
         sys.exit(1)

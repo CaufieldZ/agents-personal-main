@@ -84,7 +84,7 @@ def main() -> None:
 
     builder = ApplicationBuilder().token(token)
     if proxy:
-        builder = builder.proxy(proxy)
+        builder = builder.proxy(proxy).get_updates_proxy(proxy)
     app = builder.build()
 
     app.add_handler(

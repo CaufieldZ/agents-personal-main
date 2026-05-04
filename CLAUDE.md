@@ -13,9 +13,29 @@
 
 ## 通用工具
 
-`ffmpeg`（视频/音频）、`imagemagick`（图片批处理）、`python3` + `openpyxl`（数据/Excel）。脚本默认存 `scripts/`，下次复用。
+脚本默认存 `scripts/`，下次复用。
+
+### Office 全家桶
+- **Word** `python-docx` — 读/写/改 .docx，按段落/表格/样式操作
+- **Excel** `openpyxl` — 读/写/改 .xlsx，公式/样式/图表
+- **PowerPoint** `python-pptx` — 读/写/改 .pptx，幻灯片/形状/文本框
+- **格式转换** `pandoc` — docx/md/html/pdf/rst 互转
 
 **Excel/openpyxl 输出验证**：用 WPS / Numbers / Excel 打开，VSCode 内置 xlsx 预览不渲染样式（字体/颜色/列宽/超链接全丢），别根据 VSCode 截图判断「丑」。
+
+### 音视频
+- `ffmpeg` — 转码/裁切/合并/字幕/滤镜/提取音频
+- `ffprobe` — 查看元信息（编码/码率/分辨率/时长）
+
+### Adobe 替代 / PDF
+- `gs` (Ghostscript) — PDF 压缩/合并/加密码/转图片
+- `qpdf` — PDF 拆分/合并/旋转/加密/解密/线性化
+- `pdfplumber` (Python) — 提取文字/表格（比 pdfminer 准）
+- `exiftool` — 读/写 EXIF/IPTC/XMP 元数据（图片/视频/PDF 均可）
+
+### 图片
+- `imagemagick` (convert/magick) — 格式转换/缩放/裁剪/加水印/批处理
+- `pillow` (PIL, Python) — 像素级操作/合成/调色/OCR 预处理
 
 ## 目录
 
@@ -29,9 +49,9 @@
 - `lib/` order_store / order_formatter / xianyu_client / tg_client / fx / tp_flights
 - `daemons/` xianyu_daemon.py（私信监听）, tg_listener.py（TG 群监听）
 - `commands/` Claude 协作命令（见下）
-- `vendor/xianyu_live/` XianyuAutoAgent 协议层快照（不改）
+- `vendor/xianyu_live/` XianyuAutoAgent 协议层快照。原则上不改，但已打两个本地补丁：(1) `XianyuApis.py` 风控触发改成落 `state/cookie_dirty.flag` + TG 告警 + `sys.exit(2)`，避免 nohup 下死循环；(2) `main.py` 心跳/Token 刷新/重连等待全部加抖动
 - `data/` 价格数据源（机场码、新干线票价、汇率缓存）
-- `config/xianyu_cookies.txt` 闲鱼 Cookie（gitignore，过期需浏览器过滑块后重拿，要带 `x5sec`）
+- `config/xianyu_cookies.txt` 闲鱼 Cookie（gitignore，过期需浏览器过滑块后重拿，要带 `x5sec`）。**必须从 daemon 运行的同一台机器、同一个网络环境的浏览器拿**——cookie 里 baked 着浏览器设备指纹，跨设备/跨 IP 用会秒触风控
 - `config/travelpayouts.env` Aviasales API token（gitignore）
 - `xianyu/ledger.xlsx` 台账
 - `logs/` 守护进程日志
@@ -104,6 +124,13 @@ notes[]
 ```
 
 `update_status / save / load / list_all` 在 `lib/order_store.py`，状态校验和 timeline 自动追加都封装好了。
+
+### 反风控行为
+
+`lib/xianyu_client.send_message` 默认两条防机器人措施，所有发买家消息的命令（`reply.py` `quote.py --send` `send_receipt.py`）共享：
+
+- **夜间静默 01:00–07:30 CST**：在静默期内 `send_message` 抛 `QuietHoursError` 拒发，避免凌晨秒回的机器人特征。需要绕过加 `--force-night`。窗口可用 env `XIANYU_QUIET_START` / `XIANYU_QUIET_END` 调（HH:MM 格式）
+- **人工延迟 15–90s**：`humanize=True`（默认）时发送前 sleep `random.uniform(15,60) + len(text)*random.uniform(0.05,0.2)`，封顶 90s。`reply.py --no-delay` 跳过
 
 ### 命令（详细参数 `python commands/xxx.py -h`）
 

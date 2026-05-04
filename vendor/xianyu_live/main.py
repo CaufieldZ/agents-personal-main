@@ -43,10 +43,13 @@ class XianyuLive:
         self.last_heartbeat_response = 0
         self.heartbeat_task = None
         self.ws = None
-        
+        # 抖动避免精准间隔被风控识别
+        self._heartbeat_jitter = random.uniform(-3, 3)
+
         # Token刷新相关配置
         self.token_refresh_interval = int(os.getenv("TOKEN_REFRESH_INTERVAL", "3600"))  # Token刷新间隔，默认1小时
         self.token_retry_interval = int(os.getenv("TOKEN_RETRY_INTERVAL", "300"))       # Token重试间隔，默认5分钟
+        self._token_refresh_jitter = random.uniform(-300, 300)
         self.last_token_refresh_time = 0
         self.current_token = None
         self.token_refresh_task = None
@@ -93,13 +96,15 @@ class XianyuLive:
             try:
                 current_time = time.time()
                 
-                # 检查是否需要刷新token
-                if current_time - self.last_token_refresh_time >= self.token_refresh_interval:
+                # 检查是否需要刷新token（带抖动）
+                if current_time - self.last_token_refresh_time >= self.token_refresh_interval + self._token_refresh_jitter:
                     logger.info("Token即将过期，准备刷新...")
-                    
+
                     new_token = await self.refresh_token()
                     if new_token:
                         logger.info("Token刷新成功，准备重新建立连接...")
+                        # 重置抖动
+                        self._token_refresh_jitter = random.uniform(-300, 300)
                         # 设置连接重启标志
                         self.connection_restart_flag = True
                         # 关闭当前WebSocket连接，触发重连
@@ -552,9 +557,10 @@ class XianyuLive:
             try:
                 current_time = time.time()
                 
-                # 检查是否需要发送心跳
-                if current_time - self.last_heartbeat_time >= self.heartbeat_interval:
+                # 检查是否需要发送心跳（带抖动）
+                if current_time - self.last_heartbeat_time >= self.heartbeat_interval + self._heartbeat_jitter:
                     await self.send_heartbeat(ws)
+                    self._heartbeat_jitter = random.uniform(-3, 3)
                 
                 # 检查上次心跳响应时间，如果超时则认为连接已断开
                 if (current_time - self.last_heartbeat_response) > (self.heartbeat_interval + self.heartbeat_timeout):
@@ -674,12 +680,13 @@ class XianyuLive:
                     except asyncio.CancelledError:
                         pass
                 
-                # 如果是主动重启，立即重连；否则等待5秒
+                # 如果是主动重启，立即重连；否则等待 5-12s（带抖动）
                 if self.connection_restart_flag:
                     logger.info("主动重启连接，立即重连...")
                 else:
-                    logger.info("等待5秒后重连...")
-                    await asyncio.sleep(5)
+                    delay = 5 + random.uniform(0, 7)
+                    logger.info(f"等待 {delay:.1f}s 后重连...")
+                    await asyncio.sleep(delay)
 
 
 

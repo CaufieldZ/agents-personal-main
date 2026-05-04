@@ -1,11 +1,54 @@
-import time
+import json
 import os
 import re
 import sys
+import time
+from datetime import datetime, timezone, timedelta
+from pathlib import Path
 
 import requests
 from loguru import logger
 from utils.xianyu_utils import generate_sign
+
+_PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
+_COOKIE_DIRTY_FLAG = _PROJECT_ROOT / "state" / "cookie_dirty.flag"
+_TZ_CST = timezone(timedelta(hours=8))
+
+
+def _trip_cookie_dirty(reason: str) -> None:
+    """落盘风控 flag + 发 TG 告警，调用方紧接着 sys.exit(2)。"""
+    payload = {
+        "ts": datetime.now(_TZ_CST).isoformat(timespec="seconds"),
+        "reason": reason,
+    }
+    try:
+        _COOKIE_DIRTY_FLAG.parent.mkdir(parents=True, exist_ok=True)
+        _COOKIE_DIRTY_FLAG.write_text(
+            json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8"
+        )
+        logger.error(f"🔴 已写入 cookie_dirty flag: {_COOKIE_DIRTY_FLAG}")
+    except Exception as e:
+        logger.error(f"写 cookie_dirty flag 失败: {e}")
+
+    alert_chat = os.getenv("TG_ALERT_CHAT_ID", "").strip()
+    if not alert_chat:
+        logger.warning("TG_ALERT_CHAT_ID 未配置，跳过告警")
+        return
+    try:
+        sys.path.insert(0, str(_PROJECT_ROOT))
+        from lib.tg_client import send_text  # noqa: E402
+        send_text(
+            alert_chat,
+            "⚠️ <b>闲鱼 Cookie 失效</b>\n"
+            f"时间: {payload['ts']}\n"
+            f"原因: <code>{reason[:200]}</code>\n"
+            "操作: 浏览器登录闲鱼 → 过滑块 → 复制 Cookie 到 "
+            "<code>config/xianyu_cookies.txt</code> → 删除 "
+            "<code>state/cookie_dirty.flag</code> → 重启守护进程",
+        )
+        logger.info("TG 告警已发送")
+    except Exception as e:
+        logger.error(f"TG 告警发送失败: {e}")
 
 
 class XianyuApis:
@@ -203,37 +246,8 @@ class XianyuApis:
                     error_msg = str(ret_value)
                     if 'RGV587_ERROR' in error_msg or '被挤爆啦' in error_msg:
                         logger.error(f"❌ 触发风控: {ret_value}")
-                        logger.error("🔴 系统目前无法自动解决，请进入闲鱼网页版-点击消息-过滑块-复制最新的Cookie")
-                        
-                        # 获取用户输入的新Cookie
-                        print("\n" + "="*50)
-                        new_cookie_str = input("请输入新的Cookie字符串 (复制浏览器中的完整cookie，直接回车则退出程序): ").strip()
-                        print("="*50 + "\n")
-                        
-                        if new_cookie_str:
-                            try:
-                                # 解析cookie字符串并更新session
-                                from http.cookies import SimpleCookie
-                                cookie = SimpleCookie()
-                                cookie.load(new_cookie_str)
-                                
-                                # 清空旧cookie并设置新cookie
-                                self.session.cookies.clear()
-                                for key, morsel in cookie.items():
-                                    self.session.cookies.set(key, morsel.value, domain='.goofish.com')
-                                
-                                logger.success("✅ Cookie已更新，正在尝试重连...")
-                                # 同步更新到.env文件
-                                self.update_env_cookies()
-                                
-                                # 立即重试
-                                return self.get_token(device_id, 0)
-                            except Exception as e:
-                                logger.error(f"Cookie解析失败: {e}")
-                                sys.exit(1)
-                        else:
-                            logger.info("用户取消输入，程序退出")
-                            sys.exit(1)
+                        _trip_cookie_dirty(str(ret_value))
+                        sys.exit(2)
 
                     logger.warning(f"Token API调用失败，错误信息: {ret_value}")
                     # 处理响应中的Set-Cookie

@@ -40,6 +40,7 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="发 PNR 回执给买家")
     parser.add_argument("--order-id", required=True, help="订单 ID（xianyu_order_id）")
     parser.add_argument("--confirm",  action="store_true", help="加此参数才真发，否则只打印")
+    parser.add_argument("--force-night", action="store_true", help="夜间静默期 (01:00-07:30 CST) 强制发送")
     args = parser.parse_args()
 
     try:
@@ -81,7 +82,7 @@ def main() -> None:
 
     from lib.xianyu_client import send_message
     try:
-        send_message(chat_id, to_uid, text)
+        send_message(chat_id, to_uid, text, force_night=args.force_night)
         print("文字回执发送成功")
     except Exception as e:
         print(f"文字发送失败：{e}")

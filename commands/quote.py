@@ -108,7 +108,7 @@ def _resolve_rail_route(arg: str) -> tuple[str, str, dict]:
     sys.exit(3)
 
 
-def _send_via_reply(order: dict, text: str) -> None:
+def _send_via_reply(order: dict, text: str, force_night: bool = False) -> None:
     chat_id = order.get("xianyu_chat_id", "")
     buyer   = order.get("buyer") or {}
     to_uid  = buyer.get("xianyu_uid", "") if isinstance(buyer, dict) else ""
@@ -116,7 +116,7 @@ def _send_via_reply(order: dict, text: str) -> None:
         print("订单缺 xianyu_chat_id 或 buyer.xianyu_uid，--send 不能用，自己 reply.py 发")
         sys.exit(5)
     from lib.xianyu_client import send_message
-    send_message(chat_id, to_uid, text)
+    send_message(chat_id, to_uid, text, force_night=force_night)
     print(f"已发买家：{chat_id}")
 
 
@@ -135,6 +135,7 @@ def main() -> None:
     parser.add_argument("--pax",    type=int, help="人数，缺省读订单")
     parser.add_argument("--quoted-text", help="覆盖模板生成的话术（截图场景手写话术用）")
     parser.add_argument("--send",   action="store_true", help="生成后立刻发买家")
+    parser.add_argument("--force-night", action="store_true", help="夜间静默期 (01:00-07:30 CST) 强制发送")
     args = parser.parse_args()
 
     try:
@@ -226,7 +227,7 @@ def main() -> None:
     print(f"已写入 pricing.quoted_text  报价 ¥{pricing['quoted_price']}")
 
     if args.send:
-        _send_via_reply(order, text)
+        _send_via_reply(order, text, force_night=args.force_night)
     else:
         print(f"发买家：python3 commands/reply.py --order-id {args.order_id} --use-quoted-text --confirm")
 

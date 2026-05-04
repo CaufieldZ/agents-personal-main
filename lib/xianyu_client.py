@@ -8,9 +8,11 @@
 import asyncio
 import base64
 import json
+import os
 import random
 import sys
 import time
+from datetime import datetime, time as dtime, timezone, timedelta
 from pathlib import Path
 
 import websockets
@@ -104,7 +106,7 @@ async def _send_once(chat_id: str, to_uid: str, text: str) -> None:
             },
         }
         await ws.send(json.dumps(reg))
-        await asyncio.sleep(1)
+        await asyncio.sleep(random.uniform(0.8, 1.6))
 
         # ackDiff
         ack_diff = {
@@ -124,23 +126,75 @@ async def _send_once(chat_id: str, to_uid: str, text: str) -> None:
             ],
         }
         await ws.send(json.dumps(ack_diff))
-        await asyncio.sleep(0.5)
+        await asyncio.sleep(random.uniform(0.4, 0.9))
 
         # 发送消息
         payload = _build_text_payload(chat_id, to_uid, my_uid, text)
         await ws.send(payload)
-        await asyncio.sleep(0.5)
+        await asyncio.sleep(random.uniform(0.4, 0.9))
+
+
+_TZ_CST = timezone(timedelta(hours=8))
+
+
+def _parse_hhmm(s: str, default: dtime) -> dtime:
+    try:
+        h, m = s.split(":")
+        return dtime(int(h), int(m))
+    except Exception:
+        return default
+
+
+def _quiet_window() -> tuple[dtime, dtime]:
+    start = _parse_hhmm(os.getenv("XIANYU_QUIET_START", "01:00"), dtime(1, 0))
+    end   = _parse_hhmm(os.getenv("XIANYU_QUIET_END",   "07:30"), dtime(7, 30))
+    return start, end
+
+
+def _is_quiet_now() -> bool:
+    now = datetime.now(_TZ_CST).time()
+    start, end = _quiet_window()
+    if start <= end:
+        return start <= now < end
+    # 跨午夜，例如 23:00 ~ 07:00
+    return now >= start or now < end
+
+
+class QuietHoursError(RuntimeError):
+    pass
 
 
 def _humanize_delay(text: str) -> float:
-    """模拟人工输入延迟：基础 0-1s + 每字 0.1-0.3s，封顶 10s。"""
-    base = random.uniform(0, 1)
-    typing = len(text) * random.uniform(0.1, 0.3)
-    return min(base + typing, 10.0)
+    """模拟人工：base 15-60s + 每字 0.05-0.2s，封顶 90s。
+
+    比真人键盘慢——目标不是逐字模拟，是制造「看到消息走开一会儿才回」的间隔。
+    """
+    base = random.uniform(15, 60)
+    typing = len(text) * random.uniform(0.05, 0.2)
+    return min(base + typing, 90.0)
 
 
-def send_message(chat_id: str, to_uid: str, text: str, *, humanize: bool = True) -> None:
-    """同步封装，供命令脚本调用。humanize=True 时模拟人工输入延迟。"""
+def send_message(
+    chat_id: str,
+    to_uid: str,
+    text: str,
+    *,
+    humanize: bool = True,
+    force_night: bool = False,
+) -> None:
+    """同步封装，供命令脚本调用。
+
+    - humanize=True 时模拟人工输入延迟（15-90s）
+    - 默认在夜间静默期 (XIANYU_QUIET_START~XIANYU_QUIET_END, 默认 01:00~07:30 CST)
+      拒发，避免凌晨秒回的机器人特征。force_night=True 可绕过
+    """
+    if not force_night and _is_quiet_now():
+        start, end = _quiet_window()
+        raise QuietHoursError(
+            f"当前在夜间静默期 ({start.strftime('%H:%M')}~{end.strftime('%H:%M')} CST)，"
+            f"拒绝发送以避免机器人特征。"
+            f"如确需发送，命令加 --force-night 或代码 send_message(..., force_night=True)。"
+        )
     if humanize:
         delay = _humanize_delay(text)
         print(f"模拟人工输入，延迟 {delay:.2f}s 发送…")
@@ -192,7 +246,7 @@ async def _fetch_history_once(chat_id: str, timeout: float = 30.0) -> list:
             },
         }
         await ws.send(json.dumps(reg))
-        await asyncio.sleep(1)
+        await asyncio.sleep(random.uniform(0.8, 1.6))
         ack_diff = {
             "lwp": "/r/SyncStatus/ackDiff",
             "headers": {"mid": "5701741704675979 0"},
