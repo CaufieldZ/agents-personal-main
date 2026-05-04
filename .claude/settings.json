@@ -79,7 +79,28 @@
       "Bash(git push *)",
       "Bash(git config --local *)",
       "Bash(git merge *)",
-      "Bash(git stash *)"
+      "Bash(git stash *)",
+      "Read(//Users/felix.zhi/pm-workspace/.claude/hooks/**)",
+      "Read(//Users/felix.zhi/pm-workspace/.claude/**)",
+      "Bash(mkdir -p /Users/felix.zhi/personal/.claude/hooks/lib)",
+      "Bash(cp /Users/felix.zhi/pm-workspace/.claude/hooks/pre-proxy-check.sh /Users/felix.zhi/personal/.claude/hooks/)",
+      "Bash(cp /Users/felix.zhi/pm-workspace/.claude/hooks/lib/log.sh /Users/felix.zhi/personal/.claude/hooks/lib/)",
+      "Bash(python3 -c \"import json; json.load\\(open\\('/Users/felix.zhi/personal/.claude/settings.json'\\)\\)\")",
+      "Bash(/Users/felix.zhi/personal/.claude/hooks/pre-proxy-check.sh)",
+      "Bash(echo \"exit=$?\")"
+    ]
+  },
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/pre-proxy-check.sh"
+          }
+        ]
+      }
     ]
   }
 }
