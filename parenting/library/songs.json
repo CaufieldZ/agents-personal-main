@@ -1,0 +1,48 @@
+{
+  "_meta": {
+    "purpose": "钦钦熟悉的童谣 / 音乐",
+    "fields": "title / language zh|en / source 公共领域|具体专辑|YouTube|... / occasion 睡前|早起|路上|... / note"
+  },
+  "items": [
+    {
+      "title": "Twinkle Twinkle Little Star / 一闪一闪小星星",
+      "language": "双语",
+      "source": "公共领域 — 旋律源自法国民谣《Ah! vous dirai-je, maman》(1761),英文歌词 Jane Taylor 1806 年发表",
+      "source_url": "https://en.wikipedia.org/wiki/Twinkle,_Twinkle,_Little_Star",
+      "occasion": "睡前",
+      "note": "旋律慢、重复性强,适合 1-2 岁。Mozart 也用过这段旋律变奏(K.265)"
+    },
+    {
+      "title": "Frère Jacques / 两只老虎",
+      "language": "双语",
+      "source": "公共领域 — 法国民谣 (18 世纪),中文填词广为流传",
+      "source_url": "https://en.wikipedia.org/wiki/Fr%C3%A8re_Jacques",
+      "occasion": "互动",
+      "note": "可双手扮老虎做手指操"
+    },
+    {
+      "title": "拔萝卜",
+      "language": "zh",
+      "source": "中国流传民谣,改编自俄罗斯民间故事",
+      "source_url": "https://www.thepaper.cn/newsDetail_forward_2916817",
+      "occasion": "互动",
+      "note": "歌词 + 故事,锻炼词汇 + 协作概念(老公公-老婆婆-小弟弟-小妹妹-小花猫-小老鼠)"
+    },
+    {
+      "title": "Old MacDonald Had a Farm",
+      "language": "en",
+      "source": "公共领域 — 1917 年首次记录(Frederick Thomas Nettleingham),旋律更早",
+      "source_url": "https://en.wikipedia.org/wiki/Old_MacDonald_Had_a_Farm",
+      "occasion": "互动 / 路上",
+      "note": "动物拟声(moo / oink / quack),适合语言爆发期"
+    },
+    {
+      "title": "If You're Happy and You Know It / 如果感到幸福你就拍拍手",
+      "language": "双语",
+      "source": "民间流传,旋律或源自 19 世纪美国民谣,常归 Joe Raposo 1971 改编;中文填词流传",
+      "source_url": "https://en.wikipedia.org/wiki/If_You%27re_Happy_and_You_Know_It",
+      "occasion": "互动",
+      "note": "拍手 / 跺脚 / 转圈,锻炼大动作 + 情绪表达"
+    }
+  ]
+}

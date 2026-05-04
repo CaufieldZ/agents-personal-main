@@ -10,7 +10,10 @@
       "Bash(curl *)",
       "Bash(pip *)",
       "Bash(pip3 *)",
+      "Bash(pip3 install *)",
       "Bash(.venv/bin/pip *)",
+      "Bash(.venv/bin/pip install *)",
+      "Bash(.venv/bin/pip list *)",
       "Bash(npm *)",
       "Bash(npx *)",
       "Bash(cp *)",
@@ -24,6 +27,7 @@
       "Bash(nohup *)",
       "Bash(tail -f *)",
       "Bash(tail -n *)",
+      "Bash(python3 -m py_compile *)",
       "Bash(.venv/bin/python commands/inbox.py)",
       "Bash(.venv/bin/python commands/inbox.py *)",
       "Bash(python3 commands/inbox.py)",
@@ -36,6 +40,10 @@
       "Bash(.venv/bin/python commands/sk.py *)",
       "Bash(python3 scripts/show_flight.py *)",
       "Bash(.venv/bin/python scripts/show_flight.py *)",
+      "Bash(python3 scripts/event_bot/bot.py)",
+      "Bash(python3 scripts/event_bot/bot.py &)",
+      "Bash(python3 scripts/event_bot/backtest.py *)",
+      "Bash(python3 scripts/event_bot/walkforward.py *)",
       "Bash(python3 -c \"import funasr; print\\(funasr.__version__\\)\")",
       "Bash(python3 -c \"import sounddevice; print\\(sounddevice.__version__\\)\")",
       "Bash(python3 -c \"import pynput; print\\(pynput.__version__\\)\")",
@@ -66,7 +74,12 @@
       "Bash(git remote *)",
       "Bash(git ls-tree *)",
       "Bash(git checkout *)",
-      "Bash(git add *)"
+      "Bash(git add *)",
+      "Bash(git commit *)",
+      "Bash(git push *)",
+      "Bash(git config --local *)",
+      "Bash(git merge *)",
+      "Bash(git stash *)"
     ]
   }
 }
