@@ -15,7 +15,7 @@ import json
 from datetime import datetime
 from itertools import product
 
-import config as cfg
+import params as cfg          # 策略参数走 params（进 git）
 from backtest import fetch_range, run_backtest, print_result, get_optimize_grid, INTERVAL_MIN
 
 

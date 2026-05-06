@@ -24,17 +24,27 @@ except ImportError:
     print("pip install websockets")
     sys.exit(1)
 
-from config import *
+from config import *           # token / proxy（gitignored）
+from params import *           # 策略 / 风控参数（进 git，跨机同步，覆盖 config 同名字段）
 from strategy import (
     Candle, RangeStatus, WickEvent,
     RangeDetector, WickDetector,
     momentum_ok, momentum_slope, volume_ok, is_trading_hours, is_trading_hours_at,
 )
 
-# config.py 没定义时给个默认值（向后兼容老 config）
-if 'MIN_CONFIDENCE' not in globals():
-    MIN_CONFIDENCE = '中'
 _CONF_RANK = {'低': 0, '中': 1, '高': 2}
+
+# 启动检查：config.py 里如果还有策略参数，提示用户清理
+import config as _cfg_mod
+_PARAMS_FIELDS = {'SYMBOL', 'KLINE_INTERVAL', 'RANGE_LOOKBACK', 'RANGE_MAX_WIDTH',
+                  'WICK_MIN_BREACH', 'WICK_BREACH_RATIO', 'VOLUME_MIN_RATIO',
+                  'MOMENTUM_MAX_SLOPE', 'SIGNAL_COOLDOWN', 'MIN_CONFIDENCE',
+                  'CONTRACT_DURATION', 'TRADE_ONLY_OFF_HOURS', 'TRADE_START_HOUR',
+                  'TRADE_END_HOUR', 'AMOUNT', 'RISK_MAX_PER_HOUR',
+                  'RISK_MAX_CONSEC_LOSS', 'RISK_REFLECT_CONSEC', 'RISK_LOSS_PAUSE_MIN',
+                  'RISK_DAILY_LOSS_CAP', 'BINANCEELF_URL', 'TIME_TYPE_MAP',
+                  'TIME_TYPE', 'LOG_FILE'}
+_LEGACY_IN_CONFIG = sorted(f for f in _PARAMS_FIELDS if hasattr(_cfg_mod, f))
 
 # 代理配置
 if PROXY:
@@ -703,6 +713,9 @@ class TgListener:
             tg_send("🔄 <b>重启中...</b> (launchd 会自动拉起新进程)")
             print(f"\n  {YELLOW}[/restart] 收到 TG 命令，进程退出{RST}")
             os._exit(0)
+        elif cmd == "/pull":
+            self._pull()  # 成功会自己 os._exit(0)；失败/无更新会回复
+            return
         else:
             return
 
@@ -745,6 +758,43 @@ class TgListener:
             body = body[-3800:]
             body = "...(已截断)\n" + body
         return f"<b>最近 {len(lines)} 条信号</b>\n<pre>{body}</pre>"
+
+    def _pull(self):
+        """git pull 拿最新代码 + 自动重启。
+
+        成功且有更新 → 回 ack 后 os._exit(0) 让 launchd 拉起新进程
+        成功但无更新 → 回「已是最新」
+        失败 → 回 stderr 摘要不重启
+        """
+        import subprocess
+        repo = Path(__file__).resolve().parent.parent.parent
+        try:
+            r = subprocess.run(
+                ['git', '-C', str(repo), 'pull', '--rebase', '--ff-only', 'origin', 'main'],
+                capture_output=True, text=True, timeout=30,
+            )
+        except subprocess.TimeoutExpired:
+            tg_send("⚠ <b>/pull 超时</b> (30s)，未重启")
+            return
+        except Exception as e:
+            tg_send(f"⚠ <b>/pull 异常</b>: {e}")
+            return
+
+        out = ((r.stdout or '') + (r.stderr or '')).strip()
+        if r.returncode != 0:
+            snippet = out[-1500:] if len(out) > 1500 else out
+            tg_send(f"⚠ <b>/pull 失败</b> (code {r.returncode})\n<pre>{snippet}</pre>")
+            return
+
+        if 'Already up to date' in out or 'is up to date' in out or not out:
+            tg_send("✓ <b>已是最新</b>，无需重启")
+            return
+
+        # 拉到新提交：回 ack 后退出，由 launchd 拉起
+        snippet = out[-1500:] if len(out) > 1500 else out
+        tg_send(f"✓ <b>git pull 成功</b>\n<pre>{snippet}</pre>\n\n🔄 重启读新代码...")
+        print(f"\n  {GREEN}[/pull] 拉到新提交，进程退出{RST}")
+        os._exit(0)
 
     def _fmt_status(self, s: dict) -> str:
         ex = s.get('executor', {})
@@ -822,6 +872,11 @@ async def main():
     if SIGNAL_COOLDOWN < 60:
         print(f"{YELLOW}[!] SIGNAL_COOLDOWN={SIGNAL_COOLDOWN} 偏低，建议 ≥ 300 "
               f"抑制簇集（同区间多根连续扫针 + 重连回放都会产生重复信号）{RST}")
+    if _LEGACY_IN_CONFIG:
+        print(f"{YELLOW}[!] config.py 里有 {len(_LEGACY_IN_CONFIG)} 个策略字段已迁移到 "
+              f"params.py（进 git）：{', '.join(_LEGACY_IN_CONFIG)}\n"
+              f"    当前 params.py 的值已覆盖这些 config 字段，但 config 里残留会让人困惑。\n"
+              f"    建议从 config.py 删掉这些行（只保留 token / API key / PROXY / AUTO_TRADE）。{RST}")
     if AUTO_TRADE:
         print(f"{GREEN}自动下单: 已启用 (每单{AMOUNT}U, 限{RISK_MAX_PER_HOUR}次/时){RST}")
     else:

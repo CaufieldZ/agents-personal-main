@@ -18,13 +18,14 @@ from itertools import product
 from pathlib import Path
 from typing import Optional
 
-import config as cfg
+import params as cfg          # 策略参数走 params（进 git）
+import config as _secrets     # token / PROXY 走 config（gitignored）
 from strategy import (
     Candle, RangeDetector, WickDetector,
     momentum_ok, volume_ok, is_trading_hours_at,
 )
 
-os.environ['HTTPS_PROXY'] = cfg.PROXY or os.environ.get('HTTPS_PROXY', '')
+os.environ['HTTPS_PROXY'] = _secrets.PROXY or os.environ.get('HTTPS_PROXY', '')
 
 
 # ═══════════════════════════════════════════════════════════
@@ -296,8 +297,8 @@ def print_result(r: BacktestResult, title: str = "回测结果"):
 
 
 def update_config(params: dict, dry_run: bool = True):
-    """将最优参数写回 config.py"""
-    config_path = Path(__file__).parent / 'config.py'
+    """将最优参数写回 params.py（进 git，commit + push 后家里 TG /pull 即可应用）"""
+    config_path = Path(__file__).parent / 'params.py'
     lines = config_path.read_text().split('\n')
 
     mapping = {
@@ -335,7 +336,7 @@ def update_config(params: dict, dry_run: bool = True):
         print()
     else:
         config_path.write_text('\n'.join(new_lines))
-        print("已更新 config.py")
+        print("已更新 params.py")
         for k, v in changed.items():
             print(f"  {k} = {v}")
 
