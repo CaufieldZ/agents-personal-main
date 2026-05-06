@@ -653,6 +653,10 @@ class TgListener:
         """get_state() -> dict 返回当前状态"""
         if not TG_BOT_TOKEN:
             return
+        # 启动时丢弃所有 pending 的 update。
+        # 关键：/restart 命令会让进程退出，但那条 TG 消息还在服务器队列里，
+        # 不丢弃的话新进程拉起 → 又拉到 /restart → 又退出 → 死循环。
+        self._consume_pending()
         while True:
             await asyncio.sleep(3)
             try:
@@ -662,6 +666,29 @@ class TgListener:
                         self._handle(upd, get_state)
             except Exception as e:
                 print(f"  [!] TG轮询错误: {e}")
+
+    def _consume_pending(self):
+        """启动时把 TG 服务器上所有 pending 的 update ack 掉，避免重启风暴。"""
+        try:
+            params = {"timeout": 0}
+            qs = urllib.parse.urlencode(params)
+            url = f"https://api.telegram.org/bot{TG_BOT_TOKEN}/getUpdates?{qs}"
+            req = urllib.request.Request(url)
+            with urllib.request.urlopen(req, timeout=8) as r:
+                data = json.loads(r.read())
+            results = data.get("result", [])
+            if not results:
+                return
+            self._offset = results[-1]["update_id"] + 1
+            # 再调一次带 offset 的 getUpdates，让服务器 ack 掉这些 pending 消息
+            params = {"timeout": 0, "offset": self._offset}
+            qs = urllib.parse.urlencode(params)
+            url = f"https://api.telegram.org/bot{TG_BOT_TOKEN}/getUpdates?{qs}"
+            req = urllib.request.Request(url)
+            urllib.request.urlopen(req, timeout=8).read()
+            print(f"[tg] 启动时跳过 {len(results)} 条 pending update（避免重启风暴）")
+        except Exception as e:
+            print(f"  [!] TG 启动 consume 失败: {e}（不影响运行）")
 
     def _get_updates(self) -> list:
         params = {"timeout": 2, "offset": self._offset}
