@@ -287,12 +287,15 @@ class OrderExecutor:
         self.profit = 0.0
         self.consec_loss = 0        # 当前连跪数
         self.max_consec_loss = 0    # 历史最大连跪
-        self.paused_until = 0.0     # 暂停到何时
+        self.paused_until = 0.0     # 风控暂停到何时（自动到期）
+        self.manual_paused = False  # TG /pause 手动暂停（只能 /resume 解）
         self.daily_loss = 0.0       # 当日亏损
         self._daily_date = ""       # 当日日期
 
     def can_order(self) -> bool:
         if not BINANCEELF_TOKEN:
+            return False
+        if self.manual_paused:
             return False
         now = time.time()
 
@@ -364,6 +367,8 @@ class OrderExecutor:
     def risk_status(self) -> str:
         """返回风控状态文本"""
         parts = []
+        if self.manual_paused:
+            parts.append(f"{YELLOW}⏸手动{RST}")
         if self.consec_loss >= 2:
             parts.append(f"{RED}连跪{self.consec_loss}{RST}")
         if time.time() < self.paused_until:
@@ -617,11 +622,22 @@ def fmt_tg_signal(sig: Signal) -> str:
 # ═══════════════════════════════════════════════════════════
 
 class TgListener:
-    """轮询 TG 消息，响应 /status /stats 命令"""
+    """轮询 TG 消息，响应远程运维命令。
 
-    def __init__(self):
+    白名单：只接受来自 TG_CHAT_ID 的消息；其他 chat_id 的消息**完全不回复**
+    （不暴露 bot 在线，避免 token 泄露后被外部探测）。
+
+    命令：
+      /status /stats           - 状态/战绩
+      /pause /resume           - 手动暂停/恢复（独立于风控自动暂停）
+      /restart                 - 进程退出，依赖 launchd KeepAlive 拉起
+      /tail [N]                - 信号日志最近 N 行（默认 20，封顶 50）
+    """
+
+    def __init__(self, executor=None):
         self._offset = 0
         self._last_daily = ""   # 上次日终总结日期
+        self._executor = executor
 
     async def run(self, get_state):
         """get_state() -> dict 返回当前状态"""
@@ -657,18 +673,78 @@ class TgListener:
         if not text or not text.startswith("/"):
             return
 
-        cmd = text.strip().lower().split()[0]
+        # 白名单：只接受来自配置的 TG_CHAT_ID 的命令
+        chat_id = msg.get("chat", {}).get("id")
+        if str(chat_id) != str(TG_CHAT_ID):
+            return  # 静默丢弃，不回复也不报错
+
+        parts = text.strip().split()
+        cmd = parts[0].lower()
+        args = parts[1:]
         reply = ""
+
         if cmd == "/status":
             reply = self._fmt_status(get_state())
         elif cmd == "/stats":
             reply = self._fmt_stats(get_state())
+        elif cmd == "/pause":
+            reply = self._pause()
+        elif cmd == "/resume":
+            reply = self._resume()
+        elif cmd == "/tail":
+            n = 20
+            if args:
+                try:
+                    n = max(1, min(50, int(args[0])))
+                except ValueError:
+                    pass
+            reply = self._tail(n)
+        elif cmd == "/restart":
+            tg_send("🔄 <b>重启中...</b> (launchd 会自动拉起新进程)")
+            print(f"\n  {YELLOW}[/restart] 收到 TG 命令，进程退出{RST}")
+            os._exit(0)
         else:
             return
 
-        # 直接推群
         if reply:
             tg_send(reply)
+
+    def _pause(self) -> str:
+        if not self._executor:
+            return "⚠ executor 未注入"
+        if self._executor.manual_paused:
+            return "已是暂停状态"
+        self._executor.manual_paused = True
+        return ("⏸ <b>已手动暂停</b>\n"
+                "已下单 pending 继续走完结算；新信号不下单。\n"
+                "用 /resume 恢复。")
+
+    def _resume(self) -> str:
+        if not self._executor:
+            return "⚠ executor 未注入"
+        if not self._executor.manual_paused:
+            return "未在手动暂停状态"
+        self._executor.manual_paused = False
+        return "▶ <b>已恢复</b>，新信号正常下单"
+
+    def _tail(self, n: int) -> str:
+        from collections import deque
+        log_path = Path(__file__).resolve().parent.parent.parent / LOG_FILE
+        if not log_path.exists():
+            return "无日志文件"
+        try:
+            with open(log_path) as f:
+                lines = deque(f, maxlen=n)
+        except Exception as e:
+            return f"读日志失败: {e}"
+        if not lines:
+            return "日志为空"
+        body = "".join(lines).rstrip()
+        # TG 单条消息封顶 4096 字节，按需截断
+        if len(body) > 3800:
+            body = body[-3800:]
+            body = "...(已截断)\n" + body
+        return f"<b>最近 {len(lines)} 条信号</b>\n<pre>{body}</pre>"
 
     def _fmt_status(self, s: dict) -> str:
         ex = s.get('executor', {})
@@ -681,6 +757,8 @@ class TgListener:
             f"信号: {s.get('signals', 0)}",
         ]
         if ex:
+            if ex.get('manual_paused'):
+                lines.append("⏸ <b>手动暂停中</b> (/resume 恢复)")
             t = ex.get('total', 0)
             if t > 0:
                 lines.append(
@@ -886,7 +964,7 @@ async def main():
                     tg_send(summary)
 
     # TG 命令监听
-    tgl = TgListener()
+    tgl = TgListener(executor=executor)
     def get_state():
         r = rdet.analyze()
         return {
@@ -904,6 +982,7 @@ async def main():
                 'consec_loss': executor.consec_loss,
                 'max_consec': executor.max_consec_loss,
                 'pending': executor.pending_count,
+                'manual_paused': executor.manual_paused,
             }
         }
     tg_task = asyncio.create_task(tgl.run(get_state))
