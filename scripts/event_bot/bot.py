@@ -31,6 +31,11 @@ from strategy import (
     momentum_ok, momentum_slope, volume_ok, is_trading_hours, is_trading_hours_at,
 )
 
+# config.py 没定义时给个默认值（向后兼容老 config）
+if 'MIN_CONFIDENCE' not in globals():
+    MIN_CONFIDENCE = '中'
+_CONF_RANK = {'低': 0, '中': 1, '高': 2}
+
 # 代理配置
 if PROXY:
     os.environ['HTTP_PROXY'] = PROXY
@@ -135,7 +140,7 @@ class BinanceStream:
             try:
                 async with websockets.connect(
                     self.ws_url,
-                    ping_interval=60,
+                    ping_interval=20,
                     ping_timeout=30,
                     close_timeout=5,
                 ) as ws:
@@ -735,7 +740,10 @@ async def main():
           f"针阈值: 区间宽×{WICK_BREACH_RATIO}  |  量阈值: ×{VOLUME_MIN_RATIO}  |  "
           f"动量上限: {MOMENTUM_MAX_SLOPE}")
     print(f"冷却: {SIGNAL_COOLDOWN}s  |  目标合约: {CONTRACT_DURATION}min  |  "
-          f"信号日志: {LOG_FILE}")
+          f"置信门槛: {MIN_CONFIDENCE}  |  信号日志: {LOG_FILE}")
+    if SIGNAL_COOLDOWN < 60:
+        print(f"{YELLOW}[!] SIGNAL_COOLDOWN={SIGNAL_COOLDOWN} 偏低，建议 ≥ 300 "
+              f"抑制簇集（同区间多根连续扫针 + 重连回放都会产生重复信号）{RST}")
     if AUTO_TRADE:
         print(f"{GREEN}自动下单: 已启用 (每单{AMOUNT}U, 限{RISK_MAX_PER_HOUR}次/时){RST}")
     else:
@@ -786,6 +794,11 @@ async def main():
         log_signal(sig)
         tg_send(fmt_tg_signal(sig))
 
+        # 置信度过滤：低于 MIN_CONFIDENCE 的信号显示但不下单
+        if _CONF_RANK.get(sig.confidence, 0) < _CONF_RANK.get(MIN_CONFIDENCE, 1):
+            print(f"  {YELLOW}[skip] 置信 {sig.confidence} < {MIN_CONFIDENCE}，不下单{RST}")
+            return
+
         # 构建决策上下文
         slp = momentum_slope(rdet)
         items = list(rdet.buf)
@@ -819,22 +832,20 @@ async def main():
 
     ws_seen_connected = False
     def on_status(s: str):
-        nonlocal ws_seen_connected, sig_count
+        nonlocal ws_seen_connected
         print(f"[ws] {s}")
         if s == "connected":
             if ws_seen_connected:
-                # 重连:补回中断期间错过的 K 线 + 重放最后 3 根的信号检测
+                # 重连：只补 RangeDetector buf，不重放 on_kline。
+                # 回放历史 K 线触发新信号是 bug —— 那些机会已经过去，重新下单只会
+                # 在重连瞬间制造高度相关的簇集。信号检测从下一根新 K 线起。
                 hist = stream.fetch_history()
                 if hist:
                     rdet.buf.clear()
-                    # 先只填充，不做检测
-                    for c in hist[:-3]:
+                    for c in hist:
                         rdet.add(c)
-                    # 最后 3 根走完整 on_kline，补做信号检测
-                    for c in hist[-3:]:
-                        on_kline(c)
-                    print(f"[ws] 重连后补 {len(hist)} 根 {KLINE_INTERVAL} K线  "
-                          f"(信号累计 {sig_count})")
+                    print(f"[ws] 重连后补 {len(hist)} 根 {KLINE_INTERVAL} K线 "
+                          f"(buf 就绪，信号检测从下一根新 K 线起)")
             ws_seen_connected = True
 
     stream.on_kline = on_kline
