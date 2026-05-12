@@ -634,22 +634,29 @@ class BinanceBalance:
 # ═══════════════════════════════════════════════════════════
 
 def tg_send(text: str) -> bool:
-    """发送消息到 TG 群，失败不抛"""
+    """发送消息到 TG 群，失败打印到 stdout 但不抛；重试 1 次"""
     if not TG_BOT_TOKEN or not TG_CHAT_ID:
         return False
-    try:
-        url = f"https://api.telegram.org/bot{TG_BOT_TOKEN}/sendMessage"
-        body = json.dumps({
-            "chat_id": TG_CHAT_ID,
-            "text": text,
-            "parse_mode": "HTML"
-        }).encode()
-        req = urllib.request.Request(url, data=body,
-            headers={'Content-Type': 'application/json'}, method='POST')
-        with urllib.request.urlopen(req, timeout=10) as resp:
-            return json.loads(resp.read()).get('ok', False)
-    except Exception:
-        return False
+    url = f"https://api.telegram.org/bot{TG_BOT_TOKEN}/sendMessage"
+    body = json.dumps({
+        "chat_id": TG_CHAT_ID,
+        "text": text,
+        "parse_mode": "HTML"
+    }).encode()
+    last_err = None
+    for attempt in (1, 2):
+        try:
+            req = urllib.request.Request(url, data=body,
+                headers={'Content-Type': 'application/json'}, method='POST')
+            with urllib.request.urlopen(req, timeout=10) as resp:
+                return json.loads(resp.read()).get('ok', False)
+        except Exception as e:
+            last_err = e
+            if attempt == 1:
+                time.sleep(3)
+    snippet = text.replace('\n', ' ')[:40]
+    print(f"  [!] TG发送失败({type(last_err).__name__}): {snippet}...")
+    return False
 
 def fmt_tg_signal(sig: Signal) -> str:
     """生成发送到 TG 的信号文案"""
