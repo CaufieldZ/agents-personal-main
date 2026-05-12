@@ -252,6 +252,16 @@ def fmt_status(price: float, r: RangeStatus, n_sig: int, executor=None, balance=
         risk = executor.risk_status()
         if risk:
             extra += f" | {risk}"
+        # PR0: conf 分桶展示，仅显示有样本的档位
+        cs = executor.conf_stats
+        bucket_parts = []
+        for k in ('高', '中', '低'):
+            b = cs.get(k, {'w': 0, 'l': 0})
+            t = b['w'] + b['l']
+            if t > 0:
+                bucket_parts.append(f"{k}{b['w']}/{t}")
+        if bucket_parts:
+            extra += f" | {' '.join(bucket_parts)}"
     print(f"[{ts}] {SYMBOL.upper()} {price:.1f} | {rng} | 信号: {n_sig}{extra}", flush=True)
 
 def log_signal(sig: Signal):
@@ -264,6 +274,33 @@ def log_signal(sig: Signal):
                     f"rng={sig.range_low:.1f}-{sig.range_high:.1f} | "
                     f"wick={sig.wick_pct*100:.2f}% | "
                     f"conf={sig.confidence}\n")
+    except Exception:
+        pass
+
+# PR0: 决策日志——每个 wick 候选写一行 JSONL，含 reject_reason，
+# 给后续过滤器调参提供归因数据。wick_pos_pct 在 PR1 引入，PR0 阶段填 None。
+def log_decision(ts: float, direction: str, price: float,
+                 r: RangeStatus, w, conf: str, decided: bool,
+                 reject_reason: str = ''):
+    try:
+        p = Path(__file__).resolve().parent.parent.parent / "logs" / "event_bot_decisions.jsonl"
+        p.parent.mkdir(parents=True, exist_ok=True)
+        rec = {
+            "ts": datetime.fromtimestamp(ts).isoformat(),
+            "symbol": SYMBOL.upper(),
+            "direction": direction,
+            "price": round(price, 2),
+            "range_low": round(r.low, 2),
+            "range_high": round(r.high, 2),
+            "range_width": round(r.width_pct, 6),
+            "wick_breach": round(w.breach_pct, 6) if w else None,
+            "wick_pos_pct": getattr(w, 'pos_pct', None) if w else None,
+            "conf": conf,
+            "decided": decided,
+            "reject_reason": reject_reason,
+        }
+        with open(p, 'a') as f:
+            f.write(json.dumps(rec, ensure_ascii=False) + "\n")
     except Exception:
         pass
 
@@ -301,6 +338,10 @@ class OrderExecutor:
         self.manual_paused = False  # TG /pause 手动暂停（只能 /resume 解）
         self.daily_loss = 0.0       # 当日亏损
         self._daily_date = ""       # 当日日期
+        # PR0: 按 confidence 分桶记胜率，给后续过滤器调参提供依据
+        self.conf_stats: dict = {'高': {'w': 0, 'l': 0},
+                                 '中': {'w': 0, 'l': 0},
+                                 '低': {'w': 0, 'l': 0}}
 
     def can_order(self) -> bool:
         if not BINANCEELF_TOKEN:
@@ -473,6 +514,7 @@ class OrderExecutor:
                 self.profit += pnl
                 self.daily_loss += pnl
                 o.won = True
+                self.conf_stats.setdefault(o.confidence, {'w': 0, 'l': 0})['w'] += 1
                 print(f"\n  {GREEN}[✓] 结算赢  {o.side}  "
                       f"入场{o.entry_price:.1f} → 现价{current_price:.1f}  "
                       f"+{pnl:.2f}U{RST}")
@@ -485,6 +527,7 @@ class OrderExecutor:
                 pnl = -o.amount
                 self.profit += pnl
                 self.daily_loss += pnl
+                self.conf_stats.setdefault(o.confidence, {'w': 0, 'l': 0})['l'] += 1
                 print(f"\n  {RED}[✗] 结算输  {o.side}  "
                       f"入场{o.entry_price:.1f} → 现价{current_price:.1f}  "
                       f"{pnl:.2f}U{RST}")
@@ -941,12 +984,19 @@ async def main():
         w = wdet.detect(c, r)
         if not w:
             return
+        # 到这里说明区间内出现 wick 候选，无论结果如何都会写一条 decision 日志
+        direction_pre = 'CALL' if w.direction == 'down' else 'PUT'
+
         # 量能过滤：真扫盘性穿针通常伴随放量；无量穿针多为趋势启动早期
         if not volume_ok(c, list(rdet.buf)[:-1], VOLUME_MIN_RATIO):
+            log_decision(time.time(), direction_pre, c.close, r, w,
+                         conf='', decided=False, reject_reason='volume_low')
             return
 
         sig = eng.process(r, w, c.close)
         if not sig:
+            log_decision(time.time(), direction_pre, c.close, r, w,
+                         conf='', decided=False, reject_reason='cooldown')
             return
 
         sig_count += 1
@@ -957,6 +1007,8 @@ async def main():
         # 置信度过滤：低于 MIN_CONFIDENCE 的信号显示但不下单
         if _CONF_RANK.get(sig.confidence, 0) < _CONF_RANK.get(MIN_CONFIDENCE, 1):
             print(f"  {YELLOW}[skip] 置信 {sig.confidence} < {MIN_CONFIDENCE}，不下单{RST}")
+            log_decision(sig.ts, sig.direction, sig.price, r, w,
+                         conf=sig.confidence, decided=False, reject_reason='low_confidence')
             return
 
         # 构建决策上下文
@@ -973,8 +1025,8 @@ async def main():
             'confidence': sig.confidence,
         }
         # 推迟到下一个 1s 推送下单：entry = 触发后下一秒 close ≈ Binance 指数价
-        # 5s 内未消费就丢弃
-        pending_entry = (sig, ctx, time.time() + 5)
+        # 5s 内未消费就丢弃。带 r/w 是为了在 on_1s 写决策日志时能拿到上下文
+        pending_entry = (sig, ctx, r, w, time.time() + 5)
 
     def on_1s(c: Candle):
         nonlocal price, pending_entry
@@ -982,13 +1034,19 @@ async def main():
         executor.settle(price)
 
         if pending_entry is not None:
-            sig, ctx, deadline = pending_entry
+            sig, ctx, r_pe, w_pe, deadline = pending_entry
             if time.time() > deadline:
                 print(f"  {YELLOW}[!] pending_entry 超时 5s 丢弃: {sig.direction}{RST}")
+                log_decision(sig.ts, sig.direction, sig.price, r_pe, w_pe,
+                             conf=sig.confidence, decided=False,
+                             reject_reason='pending_timeout')
                 pending_entry = None
             else:
                 pending_entry = None
-                executor.execute(sig, c.close, ctx)
+                ok = executor.execute(sig, c.close, ctx)
+                log_decision(time.time(), sig.direction, c.close, r_pe, w_pe,
+                             conf=sig.confidence, decided=bool(ok),
+                             reject_reason='' if ok else 'risk_block')
 
     ws_seen_connected = False
     def on_status(s: str):
