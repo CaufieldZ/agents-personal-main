@@ -28,6 +28,7 @@ class WickEvent:
     extreme: float
     breach_pct: float
     revert_sec: float    # 1m 模式下固定 0，仅保留字段兼容旧 Signal 结构
+    pos_pct: float = 0.0  # wick 极值在区间内归一化位置：0=区间底, 1=区间顶
 
 
 class RangeDetector:
@@ -61,21 +62,35 @@ class WickDetector:
     """1m 蜡烛接针检测器。无状态、单根判定。
 
     breach_ratio: 穿透幅度需 ≥ 区间宽度 × ratio（相对阈值，跨波动率环境一致）
+    edge_zone: wick 极值必须落在区间边缘 [0, edge_zone]∪[1-edge_zone, 1]
+               才出信号。1.0 = 全区间允许（关闭过滤，向后兼容）；
+               0.20 = 仅区间底/顶 20% 内的接针才算
     """
 
-    def __init__(self, breach_ratio: float):
+    def __init__(self, breach_ratio: float, edge_zone: float = 1.0):
         self.breach_ratio = breach_ratio
+        self.edge_zone = edge_zone
 
     def detect(self, c: Candle, r: RangeStatus) -> Optional[WickEvent]:
         if not r.consolidating:
             return None
         min_breach = r.width_pct * self.breach_ratio
+        width = r.high - r.low
         if c.low < r.low * (1 - min_breach) and c.close >= r.low:
             breach = (r.low - c.low) / r.low
-            return WickEvent('down', c.low, breach, 0)
+            # close 在区间内归一化位置；clamp 到 [0,1]
+            pos = (c.close - r.low) / width if width > 0 else 0.0
+            pos = max(0.0, min(1.0, pos))
+            if pos > self.edge_zone:
+                return None
+            return WickEvent('down', c.low, breach, 0, pos)
         if c.high > r.high * (1 + min_breach) and c.close <= r.high:
             breach = (c.high - r.high) / r.high
-            return WickEvent('up', c.high, breach, 0)
+            pos = (c.close - r.low) / width if width > 0 else 1.0
+            pos = max(0.0, min(1.0, pos))
+            if pos < 1 - self.edge_zone:
+                return None
+            return WickEvent('up', c.high, breach, 0, pos)
         return None
 
 

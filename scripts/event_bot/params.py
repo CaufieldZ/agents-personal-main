@@ -20,6 +20,7 @@ RANGE_MAX_WIDTH = 0.006        # 区间最大宽度 0.6%（10/90 分位）
 # ───── 接针检测（穿透 + 收盘回到区间内） ─────
 WICK_MIN_BREACH = 0.0005
 WICK_BREACH_RATIO = 0.05       # 穿透 ≥ 区间宽度 × ratio
+WICK_EDGE_ZONE = 0.20          # wick close 必须落在区间底/顶 20% 内才出信号（1.0 = 关闭过滤）
 VOLUME_MIN_RATIO = 0.0         # 量能过滤已关（回测无 edge）
 MOMENTUM_MAX_SLOPE = 0.0002    # 区间内斜率上限
 

@@ -37,7 +37,8 @@ _CONF_RANK = {'低': 0, '中': 1, '高': 2}
 # 启动检查：config.py 里如果还有策略参数，提示用户清理
 import config as _cfg_mod
 _PARAMS_FIELDS = {'SYMBOL', 'KLINE_INTERVAL', 'RANGE_LOOKBACK', 'RANGE_MAX_WIDTH',
-                  'WICK_MIN_BREACH', 'WICK_BREACH_RATIO', 'VOLUME_MIN_RATIO',
+                  'WICK_MIN_BREACH', 'WICK_BREACH_RATIO', 'WICK_EDGE_ZONE',
+                  'VOLUME_MIN_RATIO',
                   'MOMENTUM_MAX_SLOPE', 'SIGNAL_COOLDOWN', 'MIN_CONFIDENCE',
                   'CONTRACT_DURATION', 'TRADE_ONLY_OFF_HOURS', 'TRADE_START_HOUR',
                   'TRADE_END_HOUR', 'AMOUNT', 'RISK_MAX_PER_HOUR',
@@ -941,9 +942,10 @@ def acquire_single_instance_lock():
 
 async def main():
     print(f"{BOLD}震荡区间接针 Bot{RST}")
+    _edge = globals().get('WICK_EDGE_ZONE', 1.0)
     print(f"品种: {SYMBOL.upper()}  |  区间最大宽度: {RANGE_MAX_WIDTH*100}%  |  "
-          f"针阈值: 区间宽×{WICK_BREACH_RATIO}  |  量阈值: ×{VOLUME_MIN_RATIO}  |  "
-          f"动量上限: {MOMENTUM_MAX_SLOPE}")
+          f"针阈值: 区间宽×{WICK_BREACH_RATIO}  |  边缘带: {_edge}  |  "
+          f"量阈值: ×{VOLUME_MIN_RATIO}  |  动量上限: {MOMENTUM_MAX_SLOPE}")
     print(f"冷却: {SIGNAL_COOLDOWN}s  |  目标合约: {CONTRACT_DURATION}min  |  "
           f"置信门槛: {MIN_CONFIDENCE}  |  信号日志: {LOG_FILE}")
     if SIGNAL_COOLDOWN < 60:
@@ -964,7 +966,8 @@ async def main():
 
     # 连通性
     rdet = RangeDetector(lookback=RANGE_LOOKBACK, max_width=RANGE_MAX_WIDTH)
-    wdet = WickDetector(breach_ratio=WICK_BREACH_RATIO)
+    edge_zone = globals().get('WICK_EDGE_ZONE', 1.0)  # 旧版 params 没这字段时兜底 1.0（不过滤）
+    wdet = WickDetector(breach_ratio=WICK_BREACH_RATIO, edge_zone=edge_zone)
     eng = SignalEngine()
     executor = OrderExecutor()
     balance = BinanceBalance()

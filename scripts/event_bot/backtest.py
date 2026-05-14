@@ -132,6 +132,7 @@ def run_backtest(candles: list[Candle], params: dict, interval: str = '1m') -> B
     rlookback = params.get('RANGE_LOOKBACK', cfg.RANGE_LOOKBACK)
     max_width = params.get('RANGE_MAX_WIDTH', cfg.RANGE_MAX_WIDTH)
     breach_ratio = params.get('WICK_BREACH_RATIO', cfg.WICK_BREACH_RATIO)
+    edge_zone = params.get('WICK_EDGE_ZONE', getattr(cfg, 'WICK_EDGE_ZONE', 1.0))
     max_slope = params.get('MOMENTUM_MAX_SLOPE', cfg.MOMENTUM_MAX_SLOPE)
     vol_min = params.get('VOLUME_MIN_RATIO', cfg.VOLUME_MIN_RATIO)
     cooldown = params.get('SIGNAL_COOLDOWN', cfg.SIGNAL_COOLDOWN)
@@ -142,7 +143,7 @@ def run_backtest(candles: list[Candle], params: dict, interval: str = '1m') -> B
     block_end = params.get('TRADE_START_HOUR', cfg.TRADE_START_HOUR)
 
     rdet = RangeDetector(lookback=rlookback, max_width=max_width)
-    wdet = WickDetector(breach_ratio=breach_ratio)
+    wdet = WickDetector(breach_ratio=breach_ratio, edge_zone=edge_zone)
 
     result = BacktestResult(params=params)
     last_signal_ts = 0
@@ -211,6 +212,7 @@ def get_optimize_grid(interval: str) -> dict:
             'RANGE_LOOKBACK': [12, 18, 24, 36],
             'RANGE_MAX_WIDTH': [0.006, 0.008, 0.010, 0.012, 0.015],
             'WICK_BREACH_RATIO': [0.05, 0.10, 0.15, 0.20],
+            'WICK_EDGE_ZONE': [0.15, 0.20, 0.25, 0.30, 1.0],
             'MOMENTUM_MAX_SLOPE': [0.0002, 0.0003, 0.0005, 0.001],
             'VOLUME_MIN_RATIO': [0.0],
             'SIGNAL_COOLDOWN': [0],
@@ -220,6 +222,7 @@ def get_optimize_grid(interval: str) -> dict:
         'RANGE_LOOKBACK': [20, 30, 40],
         'RANGE_MAX_WIDTH': [0.006, 0.008, 0.010, 0.012, 0.015],
         'WICK_BREACH_RATIO': [0.05, 0.10, 0.15, 0.20],
+        'WICK_EDGE_ZONE': [0.15, 0.20, 0.25, 0.30, 1.0],
         'MOMENTUM_MAX_SLOPE': [0.0002, 0.0003, 0.0005, 0.001],
         'VOLUME_MIN_RATIO': [1.0, 1.2, 1.5, 2.0],
         'SIGNAL_COOLDOWN': [60, 120, 300],
