@@ -97,23 +97,15 @@ def fetch_klines(symbol: str, interval: str, limit: int = 1000,
 
 
 def fetch_range(symbol: str, interval: str, days: int) -> list[Candle]:
-    """分批拉取多天历史数据"""
-    bars_per_day = 1440 // INTERVAL_MIN[interval]
-    all_candles = []
-    now_ms = int(time.time() * 1000)
-    remaining = days
-    end = now_ms
+    """按 UTC 日切片拉取多天历史数据（过去日期走 cache，today 直接 API）"""
+    from datetime import date as _date_cls, datetime as _dt, timedelta as _td, timezone as _tz
+    from cache import get_day_klines
 
-    while remaining > 0:
-        batch = fetch_klines(symbol, interval, limit=min(1000, remaining * bars_per_day), end_time=end)
-        if not batch:
-            break
-        all_candles = batch + all_candles
-        end = batch[0].ts - 1
-        remaining = days - len(all_candles) // bars_per_day
-        if len(batch) < min(500, bars_per_day):
-            break
-        time.sleep(0.2)
+    today = _dt.now(_tz.utc).date()
+    all_candles: list[Candle] = []
+    for i in range(days - 1, -1, -1):
+        d = today - _td(days=i)
+        all_candles.extend(get_day_klines(symbol, interval, d))
 
     # 去重 + 排序
     seen = set()
